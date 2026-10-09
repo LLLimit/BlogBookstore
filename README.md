@@ -17,6 +17,7 @@
 </p>
 
 <p align="center">
+  <a href="https://book.darkduck.fun/">在线演示</a> ·
   <a href="https://github.com/LLLimit/BlogBookstore/releases/latest">下载发布包</a> ·
   <a href="#快速开始独立部署">快速开始</a> ·
   <a href="#本地开发">本地开发</a> ·
@@ -27,6 +28,12 @@
 ---
 
 BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书店，不限定博客系统、作者或域名。访客可以调整昼夜、天气和音乐，从书架取下文章阅读；站长通过独立 PHP 后台管理订阅和场景。
+
+## 在线演示
+
+[进入 LLLimit'书店](https://book.darkduck.fun/)
+
+[![雨夜街角实景：两层书店、路灯与雨天路面倒影](https://raw.githubusercontent.com/LLLimit/BlogBookstore/main/docs/images/rainy-street-corner.jpg)](https://book.darkduck.fun/)
 
 ## 技术栈
 
