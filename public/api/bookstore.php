@@ -160,13 +160,25 @@ function bb_feed_target(string $url): array
     $host = trim($parts['host'], '[]');
     $port = $parts['port'] ?? ($parts['scheme'] === 'https' ? 443 : 80);
     if (!in_array($port, [80,443], true)) throw new RuntimeException('RSS 仅支持公共网站的 80 / 443 端口。');
-    $addresses = filter_var($host, FILTER_VALIDATE_IP) ? [$host] : (gethostbynamel($host) ?: []);
-    if (!filter_var($host, FILTER_VALIDATE_IP) && function_exists('dns_get_record')) {
-        foreach (@dns_get_record($host, DNS_AAAA) ?: [] as $record) if (isset($record['ipv6'])) $addresses[] = $record['ipv6'];
+    if (filter_var($host, FILTER_VALIDATE_IP)) {
+        $addresses = [$host];
+    } else {
+        $overrides = json_decode(getenv('BOOKSTORE_DNS_OVERRIDES') ?: '{}', true);
+        if (!is_array($overrides)) throw new RuntimeException('BOOKSTORE_DNS_OVERRIDES 必须是域名与真实公网 IP 对应的 JSON 对象。');
+        $override = $overrides[strtolower($host)] ?? null;
+        if ($override !== null) {
+            $addresses = is_string($override) ? [$override] : $override;
+            if (!is_array($addresses)) throw new RuntimeException('域名解析覆盖值必须是公网 IP 或 IP 数组。');
+        } else {
+            $addresses = gethostbynamel($host) ?: [];
+            if (function_exists('dns_get_record')) {
+                foreach (@dns_get_record($host, DNS_AAAA) ?: [] as $record) if (isset($record['ipv6'])) $addresses[] = $record['ipv6'];
+            }
+        }
     }
     if (!$addresses) throw new RuntimeException('无法解析 RSS 域名，请检查地址和服务器网络。');
-    foreach ($addresses as $ip) if (!bb_public_ip($ip)) throw new RuntimeException('RSS 必须来自公共网站，不能使用本机或内网地址。');
-    return [$host, $port, $addresses[0]];
+    foreach ($addresses as $ip) if (!is_string($ip) || !bb_public_ip($ip)) throw new RuntimeException('RSS 必须来自公共网站，不能使用本机或内网地址。');
+    return [$host, $port, reset($addresses)];
 }
 function bb_redirect(string $location, string $base): string
 {

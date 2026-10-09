@@ -8,6 +8,8 @@
 
 项目许可：MIT。
 
+[项目源码](https://github.com/LLLimit/BlogBookstore) · [下载发布包](https://github.com/LLLimit/BlogBookstore/releases/latest)
+
 ## 功能
 
 - 可漫游的两层书店、文章书架、搜索目录、二楼休息区与小卖部。
@@ -25,9 +27,9 @@
 
 | 文件 | 用途 |
 | --- | --- |
-| BlogBookstore-standalone-1.4.0.zip | 独立部署，包含 PHP 设置后台 |
-| BlogBookstore-source-1.4.0.zip | 通用源码，适合 GitHub 项目与二次开发 |
-| BlogBookstore-1.4.0.zip | 可选 Typecho 插件，直接读取本站文章 |
+| BlogBookstore-standalone-1.4.1.zip | 独立部署，包含 PHP 设置后台 |
+| BlogBookstore-source-1.4.1.zip | 通用源码，适合 GitHub 项目与二次开发 |
+| BlogBookstore-1.4.1.zip | 可选 Typecho 插件，直接读取本站文章 |
 
 发布包不包含个人博客地址、文章、密码、缓存或本地运行环境。所有 ZIP 的顶层目录均为 BlogBookstore。
 
@@ -90,6 +92,12 @@ Vite 自动启动本机 PHP 并转发后台与 API 请求。PHP 不在 PATH 时�
 
 没有 PHP 时仍可开发 3D 与静态快照；后台会提示配置 PHP，不会把 PHP 源码显示给浏览器。
 
+### 本机代理使用 Fake-IP
+
+部分本机代理会把公网域名解析为 198.18.x.x，RSS 后台会按保留地址拦截。需要在代理的 DNS 设置中查询真实公网地址，再用 .env 中的 BOOKSTORE_DNS_OVERRIDES 为该域名指定真实 IP。值是 JSON 对象，键是完整的小写域名，值是一个 IP 或 IP 数组。IP 变化后需要重新填写，并重启开发服务。
+
+该选项只覆盖指定域名的解析结果；仍然校验公网地址、限制端口、固定连接 IP 并验证 HTTPS 证书。生产 PHP 站点使用进程环境变量配置这个选项；网络解析正常时无需设置。禁止将本机代理地址或内网 IP 填进去。
+
 ## 构建
 
     pnpm build
@@ -105,7 +113,7 @@ pnpm preview 可预览构建结果；本机 PHP 后台也会启动。请先结�
 
     git init -b main
     git add .
-    git commit -m "Release BlogBookstore 1.4.0"
+    git commit -m "Release BlogBookstore 1.4.1"
     git remote add origin YOUR_REPOSITORY_URL
     git push -u origin main
 
