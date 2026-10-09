@@ -1,0 +1,11 @@
+node_modules/
+dist/
+releases/
+*.log
+.env
+test-results/
+.local/
+.bookstore/
+public/.bookstore/
+.env.*
+!.env.example

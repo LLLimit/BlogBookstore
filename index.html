@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#192231"><meta name="description" content="把博客变成一间可以走进去的书店。漫游书架，在文字里停留。">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml"><title>博客书店 · 在文字里停留</title>
+</head>
+<body>
+  <div id="world" aria-label="可漫游的三维书店"></div><div class="vignette"></div>
+  <header class="masthead">
+    <a class="brand" href="#" id="home" aria-label="回到书店入口"><span class="brand-icon">B</span><span>博客书店<small>GOODNIGHT BOOKSHOP</small></span></a>
+    <span class="header-note"><i></i> BOOKS, LIGHTS & LITTLE STORIES</span>
+    <nav><button id="menu-btn" class="plain-button" aria-label="打开漫游菜单" hidden>Ⅱ 菜单</button><button id="catalog-btn" class="plain-button"><svg viewBox="0 0 24 24"><path d="M4 5h4v14H4zM10 5h4v14h-4zM16 6l3-1 4 13-3 1z"/></svg><span>馆藏目录</span></button><button id="help-btn" class="icon-button" aria-label="操作说明">?</button><a id="admin-link" class="blog-link" href="./admin/index.php">书店设置 <span>↗</span></a><a id="blog-link" class="blog-link" href="#" target="_blank" rel="noopener" hidden>回到博客 <span>↗</span></a></nav>
+  </header>
+  <aside class="scene-panel" aria-label="场景控制">
+    <div class="panel-brand"><span class="panel-moon">☾</span><span><strong id="panel-title">博客书店</strong><small>YOUR LITTLE CORNER OF THE WORLD</small></span><span class="live-dot"></span></div>
+    <div class="scene-options">
+    <section class="panel-section time-section"><div class="section-label"><span>时光</span><button id="time-play" aria-label="自动流转时间" aria-pressed="false">▶</button></div><div class="clock-row"><strong id="scene-clock">00:48</strong><span id="time-label">深夜静谧</span></div><input id="time-range" aria-label="一天中的时间" type="range" min="0" max="23.99" step="0.01" value="0.8"><div class="range-labels"><span>00:00</span><span>12:00</span><span>24:00</span></div><div class="time-presets"><button data-time="7">清晨</button><button data-time="14">午后</button><button data-time="17.3">日落</button><button data-time="20">夜晚</button></div><div class="time-speed"><span>流转速度</span><button data-speed="slow">慢</button><button data-speed="medium" class="selected">中</button><button data-speed="fast">快</button></div></section>
+    <section class="panel-section view-section"><div class="section-label"><span>视角</span></div><div class="view-presets"><button data-view="wide">全景</button><button data-view="corner">街角</button><button data-view="front" class="selected">店门前</button></div></section>
+    <section class="panel-section"><div class="section-label"><span>天气</span><span id="weather-label">晴朗</span></div><div class="weather-grid">
+      <button data-weather="clear" class="selected" aria-pressed="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg><span>晴朗</span></button>
+      <button data-weather="cloudy" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M6 18a5 5 0 0 1 0-10 6 6 0 0 1 11.5 1.5A4.2 4.2 0 0 1 18 18Z"/></svg><span>多云</span></button>
+      <button data-weather="rain" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M6 14a4 4 0 0 1 0-8 6 6 0 0 1 11.5 1.5A3.5 3.5 0 0 1 18 14M7 17l-1 3m6-3-1 3m6-3-1 3"/></svg><span>小雨</span></button>
+      <button data-weather="storm" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M5 13a4 4 0 0 1 0-8 6 6 0 0 1 11.5 1.5A3.5 3.5 0 0 1 18 13M12 11l-3 6h4l-2 5M6 16l-1 3m12-3-1 3"/></svg><span>暴雨</span></button>
+      <button data-weather="snow" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M9 4l3 3 3-3M9 20l3-3 3 3M4 10l4-1-1-4m13 9-4 1 1 4M4 14l4 1-1 4m13-9-4-1 1-4"/></svg><span>飘雪</span></button>
+      <button data-weather="fog" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 6h16M2 10h15M6 14h16M3 18h15"/></svg><span>薄雾</span></button>
+    </div></section>
+    <section class="panel-section cloud-section"><div class="section-label"><span>云量</span><span id="cloud-label">56%</span></div><input id="cloud-range" aria-label="云量" type="range" min="0" max="100" step="1" value="56"></section>
+    <section class="panel-section lights-section"><div class="section-label"><span>灯光亮度</span><span id="light-label">100%</span></div><input id="light-range" aria-label="灯光亮度" type="range" min="0" max="1.8" step="0.05" value="1"></section>
+    </div>
+    <section class="panel-section music-section" aria-label="音乐播放器">
+      <div class="music-row"><button id="music-play" aria-label="播放音乐" aria-pressed="false">▶</button><div class="music-caption"><strong id="music-title">夜色书架</strong><small id="music-subtitle">原创 Lo-fi</small></div><button id="music-next" class="music-small" aria-label="下一首">›</button></div>
+      <input id="music-progress" aria-label="音乐播放进度" type="range" min="0" max="100" value="0" step=".1"><div class="music-meta"><span id="music-time">0:00 / 0:52</span><button id="music-prev" aria-label="上一首">‹</button><button id="music-loop" aria-label="循环播放" aria-pressed="true">↻</button><label class="music-upload">添加音乐<input id="music-files" type="file" accept="audio/*,.mp3,.m4a,.ogg,.wav,.flac" multiple hidden></label></div>
+      <select id="music-track" aria-label="选择音乐"></select><div class="music-volume-row"><label for="music-volume">音量</label><input id="music-volume" aria-label="音乐音量" type="range" min="0" max="100" value="55"><span id="music-volume-label">55%</span></div>
+    </section><div class="panel-entry"><button id="enter" class="primary" disabled><span id="enter-label">正在打开书店</span><span>↗</span></button><button id="lounge-btn" class="lounge-entry">↑ 二楼 · 休息大厅</button><div class="entry-meta"><span id="article-count">正在整理书架</span><span>RSS 馆藏</span></div></div>
+    <button id="reset-view" class="reset-view">⟳ 回到街景视角</button>
+  </aside>
+  <main id="welcome" class="welcome"><span class="eyebrow">A PLACE TO STAY A LITTLE</span><h1>一间亮着灯的博客书店。</h1><p>拖动环看 · 滚轮缩放 · 走进店里拿起一本书</p></main>
+  <div id="crosshair" hidden aria-hidden="true"></div>
+  <button id="book-prompt" class="book-prompt" hidden><span class="key">E</span><span><small>拿起这本书</small><strong id="book-title"></strong></span><span>↗</span></button>
+  <div id="resume" class="resume" role="region" aria-labelledby="pause-title" hidden><strong id="pause-title">漫游已暂停</strong><div id="lock-notice" class="lock-notice" hidden><p>当前浏览器无法锁定鼠标。请在 Chrome 或 Edge 中打开下面的地址，再点击「走进书店」。</p><input id="browser-preview-address" aria-label="书店网址" readonly><button id="copy-preview-address" class="secondary">复制书店网址 <span>↗</span></button></div><button id="resume-btn" class="primary">继续漫游 <span>↗</span></button><button id="return-menu-btn" class="secondary">返回主菜单 <span>←</span></button><small>按 Esc 暂停并释放鼠标。返回主菜单可调整时间、天气和音乐。</small></div>
+  <footer class="hud"><div class="chapter"><span class="chapter-number">●</span><span>博客书店<small id="source-note">来自博客的真实文章</small></span></div><div class="keyboard-hint"><span class="key">W A S D</span> 移动 <span class="key">鼠标</span> 环顾 <span class="key">E</span> 阅读 <span class="key">Esc</span> 菜单</div><div><button id="shelf-next" class="shelf-next" hidden>换一批书 ↻</button><button id="music-mini" class="quality music-mini" aria-label="播放背景音乐">♫ 音乐</button><button id="quality-btn" class="quality">画质 · 精致</button></div></footer>
+  <div id="touch-controls" hidden><div id="joystick" aria-label="移动摇杆"><span></span></div><button id="touch-read" aria-label="阅读面前的书">阅读</button><span class="touch-hint">拖动右侧环顾四周</span></div>
+  <dialog id="catalog" class="catalog-dialog"><div class="dialog-head"><div><div class="eyebrow">THE COLLECTION</div><h2>今夜，读点什么？</h2></div><button class="close" data-close="catalog" aria-label="关闭目录">×</button></div><label class="search"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="search" type="search" placeholder="搜索书名、分类或内容…" autocomplete="off"></label><div id="catalog-info" class="catalog-info"></div><div id="book-list" class="book-list"></div><button id="more" class="more" hidden>加载更多文章</button></dialog>
+  <dialog id="reader" class="reader-dialog"><div class="reader-toolbar"><button class="plain-button" data-close="reader">← 放回书架</button><span id="reader-index">READING ROOM</span><div><button id="reader-music" class="plain-button" aria-label="播放背景音乐">♫ 音乐</button><button id="font-size" class="icon-button" aria-label="切换阅读字号">Aa</button><button class="close" data-close="reader" aria-label="关闭阅读">×</button></div></div><div class="reader-scroll"><article><div id="reader-meta" class="eyebrow"></div><h1 id="reader-title"></h1><div id="reader-content" class="prose"></div><a id="original" target="_blank" rel="noopener" class="original">在博客中阅读原文 ↗</a><div class="end-mark">晚 · 安</div></article></div></dialog>
+  <dialog id="help" class="help-dialog"><div class="dialog-head"><div><div class="eyebrow">MAKE YOURSELF AT HOME</div><h2>慢慢逛，不用着急。</h2></div><button class="close" data-close="help" aria-label="关闭说明">×</button></div><p>拖动画面可环看街角，滚轮缩放；左侧面板可调整昼夜、天气、云量、灯光和音乐。日落预设为 17:18。点击「走进书店」切换到人物视角。店内右侧楼梯通往二楼休息大厅，也可从入口直接前往二楼。对准掌柜按 E 可以逛零食饮料货架。电脑进入后隐藏并锁定鼠标，以画面中央的准星为中心持续转动视角，不需要按住鼠标或反复把光标移回中央。使用 WASD 或方向键走动，对准书本后按 E 或单击阅读。按 Esc 立即暂停并恢复鼠标正常移动，选择「继续漫游」重新锁定，或选择「返回主菜单」回到街景。浏览器拒绝鼠标锁定时会显示提示，可复制书店网址到 Chrome 或 Edge 中打开。</p><p>手机使用左下角摇杆走动，在画面右侧拖动转身，再点击「阅读」。点击右上角「菜单」可以暂停或返回主菜单。也可以直接打开馆藏目录，选择任何一本书。</p><p>阅读位置会保存在当前浏览器。3D 不可用时，馆藏目录仍然可以阅读。</p></dialog>
+  <dialog id="shop-menu" class="shop-dialog"><div class="dialog-head"><div><div class="eyebrow">THE LITTLE MARKET</div><h2>掌柜的小卖部</h2></div><button class="close" data-close="shop-menu" aria-label="关闭小卖部">×</button></div><div class="shop-intro"><p>本次漫游余额 <strong id="wallet-count">50</strong> 漫游币</p><span id="snack-bag">挑一份零食，配一本好书。</span></div><div id="snack-list" class="snack-list"></div></dialog>
+  <div id="toast" role="status" hidden></div>
+  <script type="module" src="/src/main.js"></script>
+</body></html>

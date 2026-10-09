@@ -1,0 +1,14 @@
+{
+  "title": "博客书店",
+  "brandMark": "B",
+  "author": "博客作者",
+  "blogUrl": "",
+  "feedUrl": "",
+  "feedEndpoint": "./api/feed.php",
+  "cacheMinutes": 15,
+  "faviconUrl": "",
+  "defaultHour": 0.8,
+  "defaultWeather": "clear",
+  "defaultClouds": 56,
+  "defaultBrightness": 1
+}
