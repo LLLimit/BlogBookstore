@@ -1,25 +1,55 @@
-# BlogBookstore
+<p align="center"><img src="public/favicon.svg" width="96" alt="BlogBookstore 图标"></p>
 
-把博客变成一间可以走进去阅读的 3D 书店。
+<h1 align="center">BlogBookstore</h1>
 
-独立网页项目：访客可在街景中调整昼夜、天气与音乐，走进两层书店，从书架取下博客文章阅读。通过公开 RSS / Atom 接入博客，不限定博客系统、作者或域名。
+<p align="center">把博客变成一间可以走进去阅读的 3D 书店。<br>公开 RSS / Atom · 独立设置后台 · 动态天气 · 可选 Typecho 插件</p>
 
-作者：[LLLimit](https://github.com/LLLimit)。
+<p align="center">
+  <img src="https://img.shields.io/badge/Three.js-222222?style=flat-square&amp;logo=threedotjs&amp;logoColor=white" alt="Three.js">
+  <img src="https://img.shields.io/badge/JavaScript-B89A00?style=flat-square&amp;logo=javascript&amp;logoColor=white" alt="JavaScript">
+  <img src="https://img.shields.io/badge/Vite%207-646CFF?style=flat-square&amp;logo=vite&amp;logoColor=white" alt="Vite 7">
+  <img src="https://img.shields.io/badge/PHP-777BB4?style=flat-square&amp;logo=php&amp;logoColor=white" alt="PHP">
+  <br>
+  <img src="https://img.shields.io/badge/RSS%20%2F%20Atom-FFA500?style=flat-square&amp;logo=rss&amp;logoColor=white" alt="RSS / Atom">
+  <img src="https://img.shields.io/badge/WebGL%202-990000?style=flat-square&amp;logo=webgl&amp;logoColor=white" alt="WebGL 2">
+  <img src="https://img.shields.io/badge/DOMPurify-24563D?style=flat-square" alt="DOMPurify">
+  <img src="https://img.shields.io/badge/License%20MIT-222222?style=flat-square" alt="License MIT">
+</p>
 
-项目许可：MIT。
+<p align="center">
+  <a href="https://github.com/LLLimit/BlogBookstore/releases/latest">下载发布包</a> ·
+  <a href="#快速开始独立部署">快速开始</a> ·
+  <a href="#本地开发">本地开发</a> ·
+  <a href="#纯静态托管--github-pages">静态托管</a> ·
+  <a href="https://github.com/LLLimit/BlogBookstore/issues">反馈问题</a>
+</p>
 
-[项目源码](https://github.com/LLLimit/BlogBookstore) · [下载发布包](https://github.com/LLLimit/BlogBookstore/releases/latest)
+---
 
-## 功能
+BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书店，不限定博客系统、作者或域名。访客可以调整昼夜、天气和音乐，从书架取下文章阅读；站长通过独立 PHP 后台管理订阅和场景。
 
-- 可漫游的两层书店、文章书架、搜索目录、二楼休息区与小卖部。
-- RSS 2.0、RSS 1.0、Atom；支持命名空间、相对链接、作者和 Atom XHTML 正文。
-- 独立设置后台：名称、品牌缩写、封面作者、博客链接、Favicon、RSS、缓存时间、默认时间和天气。
-- 订阅检查、文章预览、立即更新、配置下载、管理员密码修改。
-- 昼夜流转、日落、移动云团、雨雪和雾；雨滴随风移动，落点有波纹。
-- 音乐播放器、原创 Lo-fi 循环、本机音频；电脑鼠标锁定、手机摇杆。
-- 阅读位置与字号记忆；无法显示 3D 时仍可从目录阅读。
-- 无需数据库、Docker 或常驻 Node 服务。3D 在访客浏览器运行，服务器提供网页与缓存订阅。
+## 技术栈
+
+| 层级 | 技术 |
+| --- | --- |
+| 场景与交互 | Three.js · JavaScript · WebGL 2 |
+| 开发与构建 | Vite 7 · pnpm · Node.js 22.12+ |
+| 服务与订阅 | PHP · cURL · DOM / XML · RSS / Atom |
+| 正文清理 | DOMPurify |
+| 部署方式 | PHP 网站 · 静态快照 · 可选 Typecho 插件 |
+
+## 功能亮点
+
+| 功能 | 说明 |
+| --- | --- |
+| 📚 漫游书店 | 两层书店、文章书架、馆藏搜索、二楼休息区与小卖部 |
+| 📰 博客接入 | RSS 2.0 / RSS 1.0 / Atom，支持命名空间、相对链接、作者与 XHTML 正文 |
+| 🛠️ 独立后台 | 书店名称、品牌、Favicon、订阅、缓存、默认时间与天气 |
+| 🔄 订阅管理 | 测试订阅、文章预览、立即更新、配置下载与管理员密码修改 |
+| 🌦️ 动态氛围 | 昼夜流转、日落、云团、雨雪和雾；随风雨滴与落地波纹 |
+| 🎵 音乐与操作 | 原创 Lo-fi 循环、本机音频、电脑鼠标锁定与手机摇杆 |
+| 🔖 阅读体验 | 阅读位置与字号记忆；无法显示 3D 时可从目录阅读 |
+| 📦 独立部署 | 无需数据库、Docker 或常驻 Node 服务；3D 在访客浏览器运行 |
 
 文章数量与正文长度由上游订阅决定。单份 RSS 上限 4 MB；前端最多展示 1000 篇，实体书架每批 24 本。
 
@@ -33,7 +63,7 @@
 
 发布包不包含个人博客地址、文章、密码、缓存或本地运行环境。所有 ZIP 的顶层目录均为 BlogBookstore。
 
-## 独立部署：Nginx / 宝塔 / Apache + PHP
+## 快速开始：独立部署
 
 准备网站目录与域名，启用 HTTPS、PHP、cURL 和 DOM / XML 扩展。代码兼容 PHP 7.4 以上；新部署请选择仍受官方支持的 PHP 版本。
 
@@ -71,7 +101,9 @@ PHP 运行用户需要能创建并写入 .bookstore。可在文件管理器中�
 
 忘记密码时，在服务器网站根目录执行：
 
-    php api/reset-admin.php
+```bash
+php api/reset-admin.php
+```
 
 按提示输入新密码；该工具只允许服务器终端运行。
 
@@ -79,8 +111,10 @@ PHP 运行用户需要能创建并写入 .bookstore。可在文件管理器中�
 
 需要 Node.js 22.12+、pnpm；后台需要 PHP、cURL 和 DOM / XML 扩展。
 
-    pnpm install
-    pnpm dev
+```bash
+pnpm install
+pnpm dev
+```
 
 前台：http://127.0.0.1:8795/
 
@@ -92,22 +126,28 @@ Vite 自动启动本机 PHP 并转发后台与 API 请求。PHP 不在 PATH 时�
 
 没有 PHP 时仍可开发 3D 与静态快照；后台会提示配置 PHP，不会把 PHP 源码显示给浏览器。
 
-### 本机代理使用 Fake-IP
+<details>
+<summary><strong>本机代理使用 Fake-IP 时如何配置</strong></summary>
 
 部分本机代理会把公网域名解析为 198.18.x.x，RSS 后台会按保留地址拦截。需要在代理的 DNS 设置中查询真实公网地址，再用 .env 中的 BOOKSTORE_DNS_OVERRIDES 为该域名指定真实 IP。值是 JSON 对象，键是完整的小写域名，值是一个 IP 或 IP 数组。IP 变化后需要重新填写，并重启开发服务。
 
 该选项只覆盖指定域名的解析结果；仍然校验公网地址、限制端口、固定连接 IP 并验证 HTTPS 证书。生产 PHP 站点使用进程环境变量配置这个选项；网络解析正常时无需设置。禁止将本机代理地址或内网 IP 填进去。
 
+</details>
+
 ## 构建
 
-    pnpm build
-    pnpm package
+```bash
+pnpm build
+pnpm package
+```
 
 dist 是部署目录；releases 包含三个 ZIP。不要把 node_modules、.local、.env、dist 或 releases 提交到 GitHub。
 
 pnpm preview 可预览构建结果；本机 PHP 后台也会启动。请先结束 pnpm dev，它们使用同一个 8795 端口。
 
-## 发布源码到 GitHub
+<details>
+<summary><strong>将二次开发后的源码发布到 GitHub</strong></summary>
 
 源码包中的 BlogBookstore 就是仓库根目录。GitHub 新建空仓库后，在该目录执行以下命令，将 YOUR_REPOSITORY_URL 替换为实际仓库地址：
 
@@ -120,6 +160,8 @@ pnpm preview 可预览构建结果；本机 PHP 后台也会启动。请先结�
 如果使用已经初始化的本地项目，只需执行最后两行。部署包可以作为 GitHub Release 附件上传；使用者下载独立包，无需安装 Node.js。
 
 首次公开发布使用空订阅配置，由每位使用者在自己的后台填写 RSS。管理员和服务器数据分别存于运行环境，不写入源码或发布包。
+
+</details>
 
 ## 纯静态托管 / GitHub Pages
 
@@ -166,7 +208,7 @@ Typecho 模式使用原有插件设置，独立 RSS 模式使用 /admin/index.ph
 - 正文通过 DOMPurify 清理，不执行脚本、iframe 或表单；可访问原文。
 - 正文图片从原站加载，会产生原站流量；不读取 RSS 以外的付费或私密内容。
 
-## 结构
+## 项目结构
 
 | 目录 | 内容 |
 | --- | --- |
@@ -176,4 +218,8 @@ Typecho 模式使用原有插件设置，独立 RSS 模式使用 /admin/index.ph
 | scripts/ | 同步与打包 |
 | Plugin.php / Action.php | 可选 Typecho 适配 |
 
-第三方许可见 THIRD_PARTY_NOTICES.md。项目使用 MIT 许可证，详见 LICENSE。允许修改和分发，保留版权与许可证文本。
+## 反馈与许可证
+
+作者：[LLLimit](https://github.com/LLLimit)。欢迎通过 [Issues](https://github.com/LLLimit/BlogBookstore/issues) 反馈问题。
+
+项目采用 [MIT License](LICENSE)。第三方许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)，修改与分发时请保留相应版权和许可文本。
