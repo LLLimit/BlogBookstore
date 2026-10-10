@@ -29,8 +29,8 @@ export function createBookstore(container,onRead,onAim,onPause,onStart){
   const composer=new EffectComposer(renderer,target);composer.addPass(new RenderPass(scene,camera));
   const ao=new SSAOPass(scene,camera,innerWidth,innerHeight,16);ao.kernelRadius=.55;ao.minDistance=.001;ao.maxDistance=.018;
   const aoRender=ao.render.bind(ao);
-  // Glass and wet-road reflections must not replace the opaque depth used for contact shading.
-  ao.render=(...args)=>{ao.ssaoMaterial.uniforms.cameraProjectionMatrix.value.copy(camera.projectionMatrix);ao.ssaoMaterial.uniforms.cameraInverseProjectionMatrix.value.copy(camera.projectionMatrixInverse);const hidden=[];scene.traverse(o=>{if(o.visible&&(o.userData.sky||(o.isMesh&&(o.isReflector||o.material.transparent)))){hidden.push(o);o.visible=false;}});try{aoRender(...args);}finally{hidden.forEach(o=>o.visible=true);}};
+  // Contact depth uses the building surfaces; weather overlays have custom masks and heights.
+  ao.render=(...args)=>{ao.ssaoMaterial.uniforms.cameraProjectionMatrix.value.copy(camera.projectionMatrix);ao.ssaoMaterial.uniforms.cameraInverseProjectionMatrix.value.copy(camera.projectionMatrixInverse);const hidden=[];scene.traverse(o=>{if(o.visible&&(o.userData.sky||o.userData.snowCover||(o.isMesh&&(o.isReflector||o.material.transparent)))){hidden.push(o);o.visible=false;}});try{aoRender(...args);}finally{hidden.forEach(o=>o.visible=true);}};
   // Contact shadows use the full drawing resolution so thin book spines keep clean edges.
   composer.addPass(ao);
   // Close-up lamps can exceed a half-float buffer. Bound highlights before they enter bloom.

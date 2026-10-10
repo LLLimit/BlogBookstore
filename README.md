@@ -53,7 +53,7 @@ BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书
 | 📰 博客接入 | RSS 2.0 / RSS 1.0 / Atom，支持命名空间、相对链接、作者与 XHTML 正文 |
 | 🛠️ 独立后台 | 书店名称、品牌、Favicon、订阅、缓存、默认时间与天气 |
 | 🔄 订阅管理 | 测试订阅、文章预览、立即更新、配置下载与管理员密码修改 |
-| 🌦️ 动态氛围 | 昼夜流转、日落、云团、雨雪和雾；随风雨滴、落地波纹、窗面水珠与屋檐滴水，暴雨时水流更密、更快 |
+| 🌦️ 动态氛围 | 昼夜流转、日落、云团、雨雪和雾；随风雨滴、落地波纹、窗面水珠与屋檐滴水，暴雨时水流更密、更快；飘雪时路面、人行道、路沿和屋顶逐渐积雪 |
 | 🎵 音乐与操作 | 原创 Lo-fi 循环、本机音频、电脑鼠标锁定与手机摇杆 |
 | 🔖 阅读体验 | 阅读位置与字号记忆；无法显示 3D 时可从目录阅读 |
 | 📦 独立部署 | 无需数据库、Docker 或常驻 Node 服务；3D 在访客浏览器运行 |
@@ -64,9 +64,9 @@ BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书
 
 | 文件 | 用途 |
 | --- | --- |
-| BlogBookstore-standalone-1.4.3.zip | 独立部署，包含 PHP 设置后台 |
-| BlogBookstore-source-1.4.3.zip | 通用源码，适合 GitHub 项目与二次开发 |
-| BlogBookstore-1.4.3.zip | 可选 Typecho 插件，直接读取本站文章 |
+| BlogBookstore-standalone-1.4.4.zip | 独立部署，包含 PHP 设置后台 |
+| BlogBookstore-source-1.4.4.zip | 通用源码，适合 GitHub 项目与二次开发 |
+| BlogBookstore-1.4.4.zip | 可选 Typecho 插件，直接读取本站文章 |
 
 发布包不包含个人博客地址、文章、密码、缓存或本地运行环境。所有 ZIP 的顶层目录均为 BlogBookstore。
 
@@ -160,7 +160,7 @@ pnpm preview 可预览构建结果；本机 PHP 后台也会启动。请先结�
 
     git init -b main
     git add .
-    git commit -m "Release BlogBookstore 1.4.3"
+    git commit -m "Release BlogBookstore 1.4.4"
     git remote add origin YOUR_REPOSITORY_URL
     git push -u origin main
 

@@ -1,6 +1,6 @@
 {
   "name": "blog-bookstore",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "A walkable 3D bookshop for any public RSS or Atom blog, with a standalone settings dashboard.",
   "private": true,
   "license": "MIT",

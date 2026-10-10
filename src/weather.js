@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import {createEaveRain} from './eave-rain.js';
+import {createSnowCover} from './snow-cover.js';
 
 export function createWeather(scene, texture) {
   const eaves=createEaveRain(scene);
+  const snowCover=createSnowCover(scene);
   let weather = 'clear', seed = 127;
   const random = () => { seed = seed * 16807 % 2147483647; return seed / 2147483647; };
   const timeUniform = {value: 0};
@@ -214,16 +216,6 @@ export function createWeather(scene, texture) {
   snow.frustumCulled = false;
   snow.visible = false;
   scene.add(snow);
-  const snowLayers = new THREE.Group();
-  scene.add(snowLayers);
-  const snowMat = new THREE.MeshStandardMaterial({color: '#e4eef1', roughness: 1, transparent: true, opacity: .5, depthWrite: false});
-  for (const [w, d, x, y, z] of [[12.96, 9.1, -.35, 7.903, -.1], [28.5, 23.5, -.4, .017, .6]]) {
-    const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, d), snowMat);
-    plane.rotation.x = -Math.PI / 2;
-    plane.position.set(x, y, z);
-    snowLayers.add(plane);
-  }
-  snowLayers.visible = false;
   const mistMap = texture(128, 128, (ctx, w, h) => {
     const gradient = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
     gradient.addColorStop(0, '#cfdce837');
@@ -247,7 +239,7 @@ export function createWeather(scene, texture) {
     const storm = value === 'storm';
     rain.visible = value === 'rain' || storm;
     snow.visible = value === 'snow';
-    snowLayers.visible = snow.visible;
+    snowCover.set(value);
     ripple.visible = rain.visible;
     mist.forEach(sprite => sprite.visible = value === 'fog' || storm);
     rainGeometry.instanceCount = rippleGeometry.instanceCount = storm ? count : lightRainCount;
@@ -262,6 +254,7 @@ export function createWeather(scene, texture) {
   function animate(time) {
     timeUniform.value = time;
     eaves.animate(time);
+    snowCover.animate(time);
     mist.forEach((sprite, i) => {
       sprite.position.x = -14 + i * 4.3 + Math.sin(time * .15 + i) * 1.3;
       sprite.material.opacity = weather === 'fog' ? .65 : .22;
@@ -269,5 +262,5 @@ export function createWeather(scene, texture) {
     const phase = time % 17;
     return weather === 'storm' ? Math.max(0, 1 - Math.abs(phase - 11.2) * 16) * .8 + Math.max(0, 1 - Math.abs(phase - 11.45) * 20) * .55 : 0;
   }
-  return {set, animate, setLighting:eaves.setLighting, rain, snow, ripple, eaves};
+  return {set, animate, setLighting:eaves.setLighting, rain, snow, ripple, eaves, snowCover};
 }
