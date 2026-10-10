@@ -6,13 +6,16 @@ import {createStreetLights} from './street-lights.js';
 import {createWeather} from './weather.js';
 import {createMerchandise} from './merchandise.js';
 import {addLounge} from './lounge.js';
+import {createGlassRain} from './glass-rain.js';
 
 // A complete street corner, built locally without external models or textures.
 export function createDistrict(scene) {
   const materials=new Map(), colliders=[], shelves=[], lamps=[], emissives=[];
+  const glassRain=createGlassRain();
   const material=(color,extra={})=>{const key=color+JSON.stringify(Object.fromEntries(Object.entries(extra).map(([k,v])=>[k,v?.uuid||v])));if(!materials.has(key))materials.set(key,new THREE.MeshStandardMaterial({color,roughness:.78,...extra}));return materials.get(key);};
   const ivory=material('#dedbd1'), concrete=material('#9ea6a5'), trim=material('#315554'), metal=material('#39434b',{metalness:.6,roughness:.38}), gold=material('#d7ae53',{metalness:.5,roughness:.4}), oak=material('#715035'), darkOak=material('#44362c');
   function box(w,h,d,x,y,z,m,parent=scene){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);mesh.castShadow=!m.transparent&&Math.min(w,h,d)>.035;mesh.receiveShadow=true;parent.add(mesh);return mesh;}
+  function rainPane(w,h,d,x,y,z,m){const pane=box(w,h,d,x,y,z,m);glassRain.add(pane,w<d?d:w,h,w<d?'x':'z',Math.min(w,d));return pane;}
   function cylinder(r,h,x,y,z,m,parent=scene){const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,16),m);mesh.position.set(x,y,z);mesh.castShadow=r>.035;mesh.receiveShadow=true;parent.add(mesh);return mesh;}
   function bar(a,b,r,m,parent=scene){const from=new THREE.Vector3(...a),to=new THREE.Vector3(...b);const mesh=cylinder(r,from.distanceTo(to),0,0,0,m,parent);mesh.position.copy(from.add(to).multiplyScalar(.5));mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(...b).sub(new THREE.Vector3(...a)).normalize());return mesh;}
   function texture(width,height,draw){const c=document.createElement('canvas');c.width=width;c.height=height;draw(c.getContext('2d'),width,height);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t;}
@@ -47,13 +50,13 @@ export function createDistrict(scene) {
   const glass=new THREE.MeshPhysicalMaterial({color:'#d7ece6',transparent:true,opacity:.045,metalness:.02,roughness:.12,side:THREE.DoubleSide,depthWrite:false});
   // Door gap in the middle is walkable; front windows remain solid to players.
   for(const x of [-3.8,3.1]){
-    box(4.5,.48,.12,x,.42,4.13,trim);box(4.45,2.23,.035,x,1.77,4.15,glass);obstacle(x,4.15,4.45,.2);
+    box(4.5,.48,.12,x,.42,4.13,trim);rainPane(4.45,2.23,.035,x,1.77,4.15,glass);obstacle(x,4.15,4.45,.2);
     for(const xx of [x-2.22,x,x+2.22])box(.045,2.8,.065,xx,1.7,4.18,metal);
     box(4.5,.04,.06,x,2.85,4.18,metal);box(4.5,.04,.06,x,.66,4.18,metal);
   }
   for(const x of [-1.49,.88])box(.075,3,.12,x,1.7,4.14,metal);
   box(2.45,.12,.14,-.3,3.14,4.16,metal);
-  for(let z=-3.6;z<3.8;z+=2.4){box(.12,.55,2.4,5.97,.43,z,trim);box(.035,2.4,2.33,5.98,1.9,z,glass);for(const zz of [z-1.17,z+1.17])box(.09,3.25,.055,6,1.82,zz,metal);}
+  for(let z=-3.6;z<3.8;z+=2.4){box(.12,.55,2.4,5.97,.43,z,trim);rainPane(.035,2.4,2.33,5.98,1.9,z,glass);for(const zz of [z-1.17,z+1.17])box(.09,3.25,.055,6,1.82,zz,metal);}
   obstacle(6,.1,.25,8.6);
   box(13,.75,.7,-.35,3.59,4.25,ivory);box(13,.075,.72,-.35,3.91,4.25,trim);box(13,.09,.73,-.35,3.25,4.25,material('#d6ae4c'));
   box(13,.045,.76,-.35,3.15,4.25,shopLight);
@@ -155,7 +158,7 @@ export function createDistrict(scene) {
   for(let i=0;i<3;i++){const signal=new THREE.Mesh(new THREE.SphereGeometry(.135,14,10),i===2?glow('#71cdad'):material(i?'#8c7452':'#813d3b'));signal.position.set(8.93+i*.36,5.65,4.61);scene.add(signal);}
   // A small A-board by the open door.
   const board=plaque('新刊上架',.85,.8,1.55,.71,4.71,'#f6e4b6','#385953');board.rotation.x=-.16;bar([1.15,.16,4.9],[1.15,1.16,4.59],.025,oak);bar([1.95,.16,4.9],[1.95,1.16,4.59],.025,oak);obstacle(1.55,4.71,.9,.45);
-  const helpers={box,cylinder,bar,material,texture,obstacle,point,emissives,metal,trim,ivory,oak,sideGlass:glass};
+  const helpers={box,rainPane,cylinder,bar,material,texture,obstacle,point,emissives,metal,trim,ivory,oak,sideGlass:glass};
   const market=createMerchandise(helpers);
   addShopDetails(scene,helpers);
   const lounge=addLounge(scene,helpers,market);
@@ -171,7 +174,7 @@ export function createDistrict(scene) {
   const wetTint=new THREE.Mesh(new THREE.PlaneGeometry(28.6,23.6),new THREE.MeshBasicMaterial({color:'#182230',transparent:true,opacity:.5,depthWrite:false}));wetTint.rotation.x=-Math.PI/2;wetTint.position.set(-.4,-.01,.6);wetTint.visible=false;scene.add(wetTint);
   const weatherEffects=createWeather(scene,texture);
   let currentWeather='clear';
-  function setWeather(weather,quality){currentWeather=weather;weatherEffects.set(weather);mirror.visible=(weather==='rain'||weather==='storm')&&!!quality;wetTint.visible=mirror.visible;}
+  function setWeather(weather,quality){currentWeather=weather;weatherEffects.set(weather);glassRain.set(weather,quality);mirror.visible=(weather==='rain'||weather==='storm')&&!!quality;wetTint.visible=mirror.visible;}
   function setLighting(day,brightness=1,night=1-day){
     for(const {light,intensity} of lamps)light.intensity=intensity*(.72+night*.28)*brightness;
     for(const m of emissives){const kind=m.userData.lightKind;m.emissiveIntensity=(kind==='sign'?.06+night*.38:kind==='window'?.05+night*1.5:.55+night*1.65)*brightness;}
@@ -189,5 +192,5 @@ export function createDistrict(scene) {
     shopSign.material.map=tex;shopSign.material.needsUpdate=true;
   }
   function floorAt(x,z,foot){const s=lounge.stair;if(x>s.left&&x<s.right&&z>s.back-.1&&z<s.front+.03)return s.bottom+THREE.MathUtils.clamp((s.front-z)/(s.front-s.back),0,1)*(s.top-s.bottom);return foot>3.5?lounge.floorY:.17;}
-  return {shelves,colliders,box,material,texture,setTitle,setWeather,setLighting,floorAt,...lounge,animate:t=>{mirror.material.uniforms.uTime.value=t;return weatherEffects.animate(t);},mirror};
+  return {shelves,colliders,box,material,texture,setTitle,setWeather,setLighting,floorAt,...lounge,animate:t=>{mirror.material.uniforms.uTime.value=t;glassRain.animate(t);return weatherEffects.animate(t);},mirror};
 }

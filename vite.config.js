@@ -63,6 +63,7 @@ export default defineConfig(async({command,mode,isPreview})=>{
   return {
     base:'./',
     server:{
+      watch:{ignored:['**/.local/**','**/.bookstore/**','**/releases/**']},
       proxy:available?{'/api':{target:'http://127.0.0.1:'+port},'/admin':{target:'http://127.0.0.1:'+port}}:undefined,
       fs:{deny:['.env','.env.*','**/.git/**','**/.local/**','**/.bookstore/**','**/*.pem','**/*.key','**/*.crt']}
     },

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export function addLounge(scene,h,market){
-  const {box,cylinder,bar,material,texture,obstacle,point,emissives,metal,trim,ivory,oak,sideGlass}=h;
+  const {box,rainPane,cylinder,bar,material,texture,obstacle,point,emissives,metal,trim,ivory,oak,sideGlass}=h;
   const floorY=4.24,cream=material('#e8dfc9'),wood=material('#b4936c'),ink=material('#294747');
   const stair={x:4.86,left:4.16,right:5.57,front:2.35,back:-3.15,bottom:.17,top:floorY};
   const floorMap=texture(1024,1024,(ctx,w,height)=>{ctx.fillStyle='#c09b73';ctx.fillRect(0,0,w,height);for(let n=0;n<16;n++){const y=n*64;ctx.fillStyle=n%3===0?'#b28b64':n%3===1?'#c09b73':'#c6a27b';ctx.fillRect(0,y,w,64);ctx.strokeStyle='#795c3b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.moveTo((n%3)*330+110,y);ctx.lineTo((n%3)*330+110,y+64);ctx.stroke();for(let k=0;k<7;k++){ctx.strokeStyle='#795c3b15';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,y+8+k*7);ctx.bezierCurveTo(350,y+3+k*7,700,y+13+k*7,w,y+8+k*7);ctx.stroke();}}});
@@ -23,14 +23,14 @@ export function addLounge(scene,h,market){
   // Match the lower floor's right-side glazing, green sill and metal mullions.
   for(let n=0;n<4;n++){
     const z=-3.3+n*2.1;
-    box(.12,.55,2.1,5.97,floorY+.26,z,trim);box(.035,2.4,2.03,5.98,floorY+1.73,z,sideGlass);
+    box(.12,.55,2.1,5.97,floorY+.26,z,trim);rainPane(.035,2.4,2.03,5.98,floorY+1.73,z,sideGlass);
   }
   for(let n=0;n<=4;n++)box(.09,3.25,.055,6,floorY+1.65,-4.35+n*2.1,metal);
   box(.17,.53,8.55,6,7.435,-.15,cream);
   box(12.5,3.52,.16,-.35,5.92,-4.35,cream);obstacle(-.35,-4.35,12.5,.18,1);
   const glass=new THREE.MeshPhysicalMaterial({color:'#c7e0dc',transparent:true,opacity:.04,roughness:.13,depthWrite:false});
   box(12.8,.57,.18,-.35,4.53,4.17,trim);box(12.8,.48,.18,-.35,7.46,4.17,cream);
-  for(let x=-5.93;x<6;x+=2.32){box(2.25,2.4,.03,x,5.96,4.17,glass);box(.055,2.44,.08,x+1.12,5.96,4.18,metal);box(2.3,.055,.09,x,4.75,4.19,metal);}
+  for(let x=-5.93;x<6;x+=2.32){rainPane(2.25,2.4,.03,x,5.96,4.17,glass);box(.055,2.44,.08,x+1.12,5.96,4.18,metal);box(2.3,.055,.09,x,4.75,4.19,metal);}
   obstacle(-.35,4.17,12.8,.18,1);
   for(const x of [-6.52,5.87])for(const z of [-4.13,4.01])box(.19,3.45,.19,x,5.94,z,wood);
   // Twenty-four real treads. Walking height follows the same stair footprint.
