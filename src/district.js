@@ -174,11 +174,12 @@ export function createDistrict(scene) {
   const wetTint=new THREE.Mesh(new THREE.PlaneGeometry(28.6,23.6),new THREE.MeshBasicMaterial({color:'#182230',transparent:true,opacity:.5,depthWrite:false}));wetTint.rotation.x=-Math.PI/2;wetTint.position.set(-.4,-.01,.6);wetTint.visible=false;scene.add(wetTint);
   const weatherEffects=createWeather(scene,texture);
   let currentWeather='clear';
-  function setWeather(weather,quality){currentWeather=weather;weatherEffects.set(weather);glassRain.set(weather,quality);mirror.visible=(weather==='rain'||weather==='storm')&&!!quality;wetTint.visible=mirror.visible;}
+  function setWeather(weather,quality){currentWeather=weather;weatherEffects.set(weather,quality);glassRain.set(weather,quality);mirror.visible=(weather==='rain'||weather==='storm')&&!!quality;wetTint.visible=mirror.visible;}
   function setLighting(day,brightness=1,night=1-day){
     for(const {light,intensity} of lamps)light.intensity=intensity*(.72+night*.28)*brightness;
     for(const m of emissives){const kind=m.userData.lightKind;m.emissiveIntensity=(kind==='sign'?.06+night*.38:kind==='window'?.05+night*1.5:.55+night*1.65)*brightness;}
     streetLights.update(night,brightness,currentWeather);
+    weatherEffects.setLighting(day,brightness);
   }
   function setTitle(title){
     shopSign.material.map?.dispose();

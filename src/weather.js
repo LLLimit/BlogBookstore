@@ -1,6 +1,8 @@
 import * as THREE from 'three';
+import {createEaveRain} from './eave-rain.js';
 
 export function createWeather(scene, texture) {
+  const eaves=createEaveRain(scene);
   let weather = 'clear', seed = 127;
   const random = () => { seed = seed * 16807 % 2147483647; return seed / 2147483647; };
   const timeUniform = {value: 0};
@@ -239,8 +241,9 @@ export function createWeather(scene, texture) {
     scene.add(sprite);
     mist.push(sprite);
   }
-  function set(value) {
+  function set(value,quality=true) {
     weather = value;
+    eaves.set(value,quality);
     const storm = value === 'storm';
     rain.visible = value === 'rain' || storm;
     snow.visible = value === 'snow';
@@ -258,6 +261,7 @@ export function createWeather(scene, texture) {
   }
   function animate(time) {
     timeUniform.value = time;
+    eaves.animate(time);
     mist.forEach((sprite, i) => {
       sprite.position.x = -14 + i * 4.3 + Math.sin(time * .15 + i) * 1.3;
       sprite.material.opacity = weather === 'fog' ? .65 : .22;
@@ -265,5 +269,5 @@ export function createWeather(scene, texture) {
     const phase = time % 17;
     return weather === 'storm' ? Math.max(0, 1 - Math.abs(phase - 11.2) * 16) * .8 + Math.max(0, 1 - Math.abs(phase - 11.45) * 20) * .55 : 0;
   }
-  return {set, animate, rain, snow, ripple};
+  return {set, animate, setLighting:eaves.setLighting, rain, snow, ripple, eaves};
 }
