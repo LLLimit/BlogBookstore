@@ -1,12 +1,11 @@
-const originals=[
+export const originals=[
   {name:'夜色书架',bpm:74,shift:0,description:'原创 Lo-fi · Rhodes / Bass / Soft drums'},
   {name:'橘色窗边',bpm:82,shift:2,description:'原创 Lo-fi · 黄昏阅读时光'},
   {name:'雨巷来信',bpm:68,shift:-2,description:'原创 Lo-fi · 慢拍与柔和琴音'}
 ];
-const stamp=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 
 // Original instrumental loops rendered locally. No remote music service is required.
-async function compose(track){
+export async function compose(track){
   const beat=60/track.bpm,duration=beat*64,sampleRate=24000;
   const ctx=new OfflineAudioContext(2,Math.ceil((duration+1.6)*sampleRate),sampleRate);
   const master=ctx.createGain();master.gain.value=.78;master.connect(ctx.destination);
@@ -31,47 +30,4 @@ async function compose(track){
   const rendered=await ctx.startRendering(),loop=new AudioBuffer({numberOfChannels:2,length:Math.floor(duration*sampleRate),sampleRate});
   for(let channel=0;channel<2;channel++){const a=rendered.getChannelData(channel),b=loop.getChannelData(channel);b.set(a.subarray(0,b.length));const overlap=Math.min(Math.floor(sampleRate*.08),b.length);for(let i=0;i<overlap;i++){const f=i/overlap;b[i]=b[i]*f+a[b.length+i]*(1-f);}}
   return loop;
-}
-
-export function initMusic(config,toast){
-  const $=id=>document.getElementById(id),tracks=[...originals],cache=new Map(),audio=new Audio();let index=0,playing=false,pending=false,context,gain,source,offset=0,startedAt=0,buffer,request=0,loop=true;
-  const urls=[];audio.preload='metadata';
-  for(const track of config.music||[])try{const url=new URL(track.url,location.href);if(['https:','http:'].includes(url.protocol))tracks.push({name:String(track.name||'自定义音乐'),url:url.href,description:'书店歌单'});}catch{}
-  function rebuild(){const select=$('music-track');select.replaceChildren();tracks.forEach((t,i)=>{const option=document.createElement('option');option.value=i;option.textContent=t.name;select.append(option);});select.value=index;}
-  function position(){return tracks[index].url?audio.currentTime:playing&&context?((context.currentTime-startedAt+offset)%(buffer?.duration||999)):offset;}
-  function update(){
-    const track=tracks[index],duration=track.url?(Number.isFinite(audio.duration)?audio.duration:0):(buffer?.duration||60/track.bpm*64),time=position();
-    $('music-title').textContent=track.name;$('music-subtitle').textContent=pending?'正在准备音乐…':playing?`正在播放 · ${loop?'循环':'顺序'}`:track.description;
-    $('music-play').textContent=pending?'…':playing?'Ⅱ':'▶';$('music-play').setAttribute('aria-label',playing?'暂停音乐':'播放音乐');$('music-play').setAttribute('aria-pressed',String(playing));
-    $('music-time').textContent=`${stamp(time)} / ${stamp(duration)}`;$('music-progress').value=duration?time/duration*100:0;$('music-track').value=index;
-    for(const id of ['music-mini','reader-music']){$(id).textContent=playing?'Ⅱ 音乐':'♫ 音乐';$(id).setAttribute('aria-label',playing?'暂停背景音乐':'播放背景音乐');}
-  }
-  function pause(){request++;offset=position();playing=false;pending=false;source?.stop();source=null;audio.pause();context?.suspend();update();}
-  async function play(){
-    const id=++request;pending=true;update();
-    try{
-      if(tracks[index].url){audio.src!==tracks[index].url&&(audio.src=tracks[index].url);audio.loop=loop;await audio.play();}
-      else{
-        if(!context){context=new AudioContext();gain=context.createGain();gain.connect(context.destination);}await context.resume();gain.gain.value=Number($('music-volume').value)/100;
-        const selected=index,ready=cache.get(selected)||await compose(tracks[selected]);cache.set(selected,ready);if(id!==request)return;buffer=ready;
-        source=context.createBufferSource();source.buffer=buffer;source.loop=loop;source.connect(gain);source.start(0,Math.min(offset,buffer.duration-.01));startedAt=context.currentTime;
-        source.onended=()=>{if(!loop&&playing&&id===request)next(1);};
-      }
-      if(id!==request){audio.pause();return;}playing=true;pending=false;update();
-    }catch{playing=false;pending=false;update();toast('这首音乐无法播放，请换一首或添加本地音频。');}
-  }
-  function toggle(){playing||pending?pause():play();}
-  function choose(value){const resume=playing||pending;pause();index=(value+tracks.length)%tracks.length;offset=0;buffer=cache.get(index);if(audio.src)audio.currentTime=0;if(resume)play();else update();}
-  function next(step){choose(index+step);}
-  $('music-play').addEventListener('click',toggle);for(const id of ['music-mini','reader-music'])$(id).addEventListener('click',toggle);
-  $('music-prev').addEventListener('click',()=>next(-1));$('music-next').addEventListener('click',()=>next(1));$('music-track').addEventListener('change',e=>choose(Number(e.target.value)));
-  $('music-loop').addEventListener('click',()=>{loop=!loop;audio.loop=loop;if(source)source.loop=loop;$('music-loop').setAttribute('aria-pressed',String(loop));update();});
-  $('music-volume').addEventListener('input',e=>{const volume=Number(e.target.value)/100;audio.volume=volume;if(gain)gain.gain.setTargetAtTime(volume,context.currentTime,.025);$('music-volume-label').textContent=e.target.value+'%';try{localStorage.setItem('bookstore:music-volume',String(volume));}catch{}});
-  $('music-progress').addEventListener('input',e=>{const percent=Number(e.target.value)/100;if(tracks[index].url&&Number.isFinite(audio.duration))audio.currentTime=audio.duration*percent;else if(buffer){const resume=playing;pause();offset=buffer.duration*percent;if(resume)play();}update();});
-  $('music-files').addEventListener('change',e=>{const first=tracks.length;for(const file of e.target.files){if(file.type.startsWith('audio/')||/\.(mp3|wav|ogg|m4a|flac)$/i.test(file.name)){const url=URL.createObjectURL(file);urls.push(url);tracks.push({name:file.name.replace(/\.[^.]+$/,''),url,description:'本地音乐'});}}rebuild();if(tracks.length>first)choose(first);e.target.value='';});
-  audio.addEventListener('ended',()=>{if(!loop&&playing)next(1);});audio.addEventListener('error',()=>{if(playing){pause();toast('音频文件无法读取，请换一首音乐。');}});
-  let volume=.55;try{const saved=localStorage.getItem('bookstore:music-volume');if(saved!==null)volume=Math.max(0,Math.min(1,Number(saved)));}catch{}
-  audio.volume=volume;$('music-volume').value=Math.round(volume*100);$('music-volume-label').textContent=Math.round(volume*100)+'%';
-  rebuild();update();const timer=setInterval(update,500);window.addEventListener('pagehide',()=>{pause();clearInterval(timer);urls.forEach(URL.revokeObjectURL);context?.close();},{once:true});
-  return {toggle,pause,get playing(){return playing;},get pending(){return pending;},get currentTime(){return position();},get duration(){return buffer?.duration||audio.duration;},get track(){return tracks[index];}};
 }

@@ -73,7 +73,7 @@ export function createAtmosphere(scene){
     let a=palettes[0],b=palettes[1];for(let i=0;i<palettes.length-1;i++){if(hour>=palettes[i][0]&&hour<palettes[i+1][0]){a=palettes[i];b=palettes[i+1];break;}}
     const f=smooth(a[0],b[0],hour),day=smooth(5.4,8,hour)*(1-smooth(16.7,19.3,hour));
     const top=new THREE.Color(a[1]).lerp(new THREE.Color(b[1]),f),horizon=new THREE.Color(a[2]).lerp(new THREE.Color(b[2]),f);
-    const overcast=weather==='storm'?.8:weather==='rain'?.55:weather==='cloudy'?.38:weather==='fog'?.7:weather==='snow'?.4:0;
+    const overcast=weather==='storm'?.8:weather==='rain'?.55:weather==='cloudy'?.38:weather==='snow'?.4:0;
     top.lerp(new THREE.Color(day>.4?'#687f94':'#17283f'),overcast);horizon.lerp(new THREE.Color(day>.4?'#a1afb5':'#314055'),overcast);
     skyUniforms.top.value.copy(top);skyUniforms.horizon.value.copy(horizon);
     const angle=(hour-6)/12*Math.PI,warmth=smooth(16.1,17.7,hour)*(1-smooth(18.6,19.4,hour));

@@ -6,6 +6,7 @@ use Typecho\Plugin\PluginInterface;
 use Typecho\Router;
 use Typecho\Widget\Helper\Form;
 use Typecho\Widget\Helper\Form\Element\Text;
+use Typecho\Widget\Helper\Form\Element\Textarea;
 use Utils\Helper;
 
 if (!defined('__TYPECHO_ROOT_DIR__')) exit;
@@ -15,7 +16,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * @package BlogBookstore
  * @author LLLimit
  * @link https://github.com/LLLimit
- * @version 1.4.4
+ * @version 1.5.0
  * @since 1.3.0
  */
 class Plugin implements PluginInterface
@@ -45,6 +46,7 @@ class Plugin implements PluginInterface
             '书架自动读取本博客的公开文章，无需手动导入。<br><a href="' . $url . '" target="_blank" rel="noopener">打开 3D 书店</a>'
             . ' · <a href="' . $fallback . '" target="_blank" rel="noopener">备用入口</a>'));
         $form->addInput(new Text('coverAuthor', null, (string) $options->title, '默认封面作者', '文章封面与馆藏目录使用的作者署名。'));
+        $form->addInput(new Textarea('musicPlaylists', null, '[]', '音乐歌单（JSON）', '使用 README 中的 musicPlaylists 格式，支持直链、JSON/M3U 和兼容 Meting API 的歌单。插件模式由浏览器获取远程歌单，来源需允许跨域访问。'));
     }
 
     public static function personalConfig(Form $form) {}

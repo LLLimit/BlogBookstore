@@ -51,7 +51,7 @@ export function createBookstore(container,onRead,onAim,onPause,onStart){
   frameCamera();orbit.addEventListener('change',()=>dirty=true);
   function lighting(){
     const {day,overcast,horizon,sunPosition,night,warmth}=atmosphere.conditions(currentHour,weather,cloudAmount);
-    scene.fog.color.copy(horizon);scene.fog.density=weather==='fog'?.055:weather==='storm'?.022:weather==='rain'?.011:.0035;
+    scene.fog.color.copy(horizon);scene.fog.density=weather==='storm'?.022:weather==='rain'?.011:.0035;
     hemisphere.intensity=.22+day*.75;hemisphere.color.set(day>.2?'#c1ddeb':'#7e9bdb').lerp(new THREE.Color('#f7b781'),warmth*.5);sun.intensity=day*2.2*(1-overcast*.8)+night*.11;sun.color.set(day>.03?'#fff0d3':'#a0b5f5').lerp(new THREE.Color('#ff9148'),warmth);sun.position.copy(day>.03?sunPosition:new THREE.Vector3(-12,20,-5));
     scene.environmentIntensity=.11+day*.39;renderer.toneMappingExposure=THREE.MathUtils.lerp(1.1,.95,day);district.setLighting(day,brightness,night);baseSun=sun.intensity;baseHemi=hemisphere.intensity;dirty=true;
   }

@@ -1,6 +1,6 @@
 import './style.css';
 import {parseFeed,cleanContent,safeUrl,getText,getFeed} from './articles.js';
-import {initMusic} from './music.js';
+import {initMusic} from './music-player.js';
 import {products} from './products.js';
 
 const $=id=>document.getElementById(id), coarse=matchMedia('(pointer:coarse)').matches;
@@ -130,7 +130,7 @@ async function init(){
   setTime(Number.isFinite(Number(config.defaultHour))?Math.min(23.99,Math.max(0,Number(config.defaultHour))):.8);
   const cloud=Math.min(100,Math.max(0,Number(config.defaultClouds)||0));$('cloud-range').value=cloud;$('cloud-label').textContent=cloud+'%';game?.setClouds(cloud/100);
   const brightness=Math.min(1.8,Math.max(0,Number(config.defaultBrightness)||0));$('light-range').value=brightness;$('light-label').textContent=Math.round(brightness*100)+'%';game?.setBrightness(brightness);
-  document.querySelector('[data-weather="'+(['clear','cloudy','rain','storm','snow','fog'].includes(config.defaultWeather)?config.defaultWeather:'clear')+'"]').click();
+  document.querySelector('[data-weather="'+(['clear','cloudy','rain','storm','snow'].includes(config.defaultWeather)?config.defaultWeather:'clear')+'"]').click();
   $('lounge-btn').hidden=!game;
   if(import.meta.env.DEV)window.__bookstore=game;
   try{

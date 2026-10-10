@@ -216,23 +216,6 @@ export function createWeather(scene, texture) {
   snow.frustumCulled = false;
   snow.visible = false;
   scene.add(snow);
-  const mistMap = texture(128, 128, (ctx, w, h) => {
-    const gradient = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
-    gradient.addColorStop(0, '#cfdce837');
-    gradient.addColorStop(.5, '#cfdce81c');
-    gradient.addColorStop(1, '#cfdce800');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, w, h);
-  });
-  const mist = [];
-  for (let i = 0; i < 7; i++) {
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: mistMap, transparent: true, depthWrite: false, opacity: .3, color: '#bdcee0'}));
-    sprite.position.set(-14 + i * 4.3, .9, 7.5 + (i % 2) * 2);
-    sprite.scale.set(7, 2.2, 1);
-    sprite.visible = false;
-    scene.add(sprite);
-    mist.push(sprite);
-  }
   function set(value,quality=true) {
     weather = value;
     eaves.set(value,quality);
@@ -241,7 +224,6 @@ export function createWeather(scene, texture) {
     snow.visible = value === 'snow';
     snowCover.set(value);
     ripple.visible = rain.visible;
-    mist.forEach(sprite => sprite.visible = value === 'fog' || storm);
     rainGeometry.instanceCount = rippleGeometry.instanceCount = storm ? count : lightRainCount;
     uniforms.uSpeed.value = storm ? 14 : 8;
     uniforms.uLength.value = storm ? .39 : .21;
@@ -255,10 +237,6 @@ export function createWeather(scene, texture) {
     timeUniform.value = time;
     eaves.animate(time);
     snowCover.animate(time);
-    mist.forEach((sprite, i) => {
-      sprite.position.x = -14 + i * 4.3 + Math.sin(time * .15 + i) * 1.3;
-      sprite.material.opacity = weather === 'fog' ? .65 : .22;
-    });
     const phase = time % 17;
     return weather === 'storm' ? Math.max(0, 1 - Math.abs(phase - 11.2) * 16) * .8 + Math.max(0, 1 - Math.abs(phase - 11.45) * 20) * .55 : 0;
   }

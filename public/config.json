@@ -10,5 +10,7 @@
   "defaultHour": 0.8,
   "defaultWeather": "clear",
   "defaultClouds": 56,
-  "defaultBrightness": 1
+  "defaultBrightness": 1,
+  "musicPlaylists": [],
+  "defaultMusicPlaylist": "builtin"
 }

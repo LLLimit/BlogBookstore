@@ -47,12 +47,14 @@ class Action extends Contents implements ActionInterface
         $html = file_get_contents($path);
         if ($html === false) return $this->fail(503, '无法读取书店页面。');
         $assetBase = rtrim(Common::url('BlogBookstore/dist/', $this->options->pluginUrl), '/') . '/';
+        $playlists = json_decode((string) $this->options->plugin('BlogBookstore')->musicPlaylists, true);
         $config = json_encode([
             'apiUrl' => Common::url('action/blog-bookstore', $this->options->index),
             'blogUrl' => (string) $this->options->siteUrl,
             'title' => $this->storeTitle(),
             'author' => trim((string) $this->options->plugin('BlogBookstore')->coverAuthor) ?: (string) $this->options->title,
             'adminUrl' => '',
+            'musicPlaylists' => is_array($playlists) ? array_values(array_filter($playlists, 'is_array')) : [],
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
         // Vite is built with base './'; only generated asset attributes are rebased.
         $html = preg_replace_callback('/\b(src|href)=("|\')\.\/(assets\/[^"\']+|favicon\.svg)\2/',

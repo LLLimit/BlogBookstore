@@ -63,8 +63,8 @@ BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书
 | 📰 博客接入 | RSS 2.0 / RSS 1.0 / Atom，支持命名空间、相对链接、作者与 XHTML 正文 |
 | 🛠️ 独立后台 | 书店名称、品牌、Favicon、订阅、缓存、默认时间与天气 |
 | 🔄 订阅管理 | 测试订阅、文章预览、立即更新、配置下载与管理员密码修改 |
-| 🌦️ 动态氛围 | 昼夜流转、日落、云团、雨雪和雾；随风雨滴、落地波纹、窗面水珠与屋檐滴水，暴雨时水流更密、更快；飘雪时路面、人行道、路沿和屋顶逐渐积雪 |
-| 🎵 音乐与操作 | 原创 Lo-fi 循环、本机音频、电脑鼠标锁定与手机摇杆 |
+| 🌦️ 动态氛围 | 昼夜流转、日落、云团和雨雪；随风雨滴、落地波纹、窗面水珠与屋檐滴水，暴雨时水流更密、更快；飘雪时路面、人行道、路沿和屋顶逐渐积雪 |
+| 🎵 音乐与操作 | 原创 Lo-fi、后台配置多个歌单、音频直链、JSON/M3U 与兼容 Meting API 的网易云/QQ/酷狗歌单；本机音频、电脑鼠标锁定与手机摇杆 |
 | 🔖 阅读体验 | 阅读位置与字号记忆；无法显示 3D 时可从目录阅读 |
 | 📦 独立部署 | 无需数据库、Docker 或常驻 Node 服务；3D 在访客浏览器运行 |
 
@@ -74,9 +74,9 @@ BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书
 
 | 文件 | 用途 |
 | --- | --- |
-| BlogBookstore-standalone-1.4.4.zip | 独立部署，包含 PHP 设置后台 |
-| BlogBookstore-source-1.4.4.zip | 通用源码，适合 GitHub 项目与二次开发 |
-| BlogBookstore-1.4.4.zip | 可选 Typecho 插件，直接读取本站文章 |
+| BlogBookstore-standalone-1.5.0.zip | 独立部署，包含 PHP 设置后台 |
+| BlogBookstore-source-1.5.0.zip | 通用源码，适合 GitHub 项目与二次开发 |
+| BlogBookstore-1.5.0.zip | 可选 Typecho 插件，直接读取本站文章 |
 
 发布包不包含个人博客地址、文章、密码、缓存或本地运行环境。所有 ZIP 的顶层目录均为 BlogBookstore。
 
@@ -170,7 +170,7 @@ pnpm preview 可预览构建结果；本机 PHP 后台也会启动。请先结�
 
     git init -b main
     git add .
-    git commit -m "Release BlogBookstore 1.4.4"
+    git commit -m "Release BlogBookstore 1.5.0"
     git remote add origin YOUR_REPOSITORY_URL
     git push -u origin main
 
@@ -206,7 +206,45 @@ GitHub 可以托管项目源码；GitHub Pages 不执行 PHP，因此不提供�
       "defaultBrightness": 1
     }
 
-config.json 可添加 music 数组，例如 [{"name":"阅读音乐","url":"./music/reading.mp3"}]，后台保留这个手动配置字段。
+### 音乐来源与歌单
+
+独立后台的“音乐来源与歌单”支持添加、删除、测试多个歌单，并设置默认歌单。保存后刷新书店，播放器可分别选择歌单和歌曲；“单曲／歌单”按钮切换循环方式。音量和访客选择的歌单保存在当前浏览器。本机音频仍通过前台“添加音乐”选择。
+
+| 来源 | 后台填写方式 |
+| --- | --- |
+| 音频直链列表 | 每行 `歌曲名 \| 完整音频地址 \| 歌手`，歌手可省略；支持自己的音频文件或外部直链 |
+| JSON 歌单 | 填写返回歌曲数组或 `{ "tracks": [...] }` 的公网地址，歌曲字段为 `name`、`artist`、`url` |
+| M3U 歌单 | 填写公网 `.m3u` 地址，支持 `#EXTINF` 标题和相对音频路径 |
+| Meting API | 选择网易云、QQ 或酷狗，填写兼容 API 地址及歌单编号；网易云/QQ 也可以粘贴歌单链接 |
+
+Meting 来源按 [MetingJS 文档](https://github.com/metowolf/MetingJS#advanced) 的 `server`、`type=playlist`、`id` 参数获取歌单。后台提供 `https://api.i-meto.com/meting/api` 和 [Meting API 项目](https://github.com/injahow/meting-api) 的 `https://api.injahow.cn/meting/` 地址参考，也可填自建兼容接口。支持带 `:server`、`:type`、`:id` 占位符的 URL。
+
+**歌单能读取不代表每首都能播放。**会员、地区限制和音频地址有效期由平台及接口决定，接口失效时可在后台更换来源。内置原创音乐随时可用，不依赖外部服务。
+
+独立站点只代理、缓存歌单文字信息五分钟，音频由访客浏览器直接从音频地址播放；不会经书店服务器中转音频。单个歌单文件上限 1 MB，最多 20 个歌单、每个最多 300 首。公开配置不暴露远程歌单/API 地址，后台导出的配置包含完整来源，供站长备份。
+
+纯静态及 Typecho 插件模式可以在配置中填写以下 `musicPlaylists` 数组；插件后台有对应 JSON 输入框。远程歌单由浏览器直接获取，来源须允许 CORS。示例：
+
+```json
+[
+  {
+    "id": "reading",
+    "name": "阅读歌单",
+    "type": "tracks",
+    "tracks": [{"name": "轻音乐", "artist": "", "url": "https://your-site.example/music/reading.mp3"}]
+  },
+  {
+    "id": "cloud-list",
+    "name": "我的平台歌单",
+    "type": "meting",
+    "url": "https://your-meting.example/api.php",
+    "server": "netease",
+    "playlistId": "123456789"
+  }
+]
+```
+
+JSON/M3U 来源用 `type: "json"` 或 `"m3u"` 和 `url`；默认歌单用 `defaultMusicPlaylist` 指定 `id`，内置歌单为 `builtin`。旧版 `music` 数组兼容读取，独立后台会将其显示为自定义歌单。旧版默认天气为薄雾时，升级后自动使用晴朗。
 
 ## 可选 Typecho 插件
 

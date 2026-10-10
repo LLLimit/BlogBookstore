@@ -2,20 +2,26 @@
 /** BlogBookstore server helpers. Author: LLLimit https://github.com/LLLimit */
 declare(strict_types=1);
 if (!defined('BOOKSTORE_API')) { http_response_code(404); exit; }
+require_once __DIR__ . '/music-lib.php';
 
 function bb_defaults(): array
 {
     $data = json_decode((string) @file_get_contents(getenv('BOOKSTORE_CONFIG_FILE') ?: dirname(__DIR__) . '/config.json'), true);
-    return array_merge([
+    $defaults = array_merge([
         'title' => '博客书店', 'brandMark' => 'B', 'author' => '博客作者',
         'blogUrl' => '', 'feedUrl' => '', 'feedEndpoint' => './api/feed.php',
         'cacheMinutes' => 15, 'faviconUrl' => '', 'defaultHour' => .8,
         'defaultWeather' => 'clear', 'defaultClouds' => 56, 'defaultBrightness' => 1,
+        'musicPlaylists'=>[], 'defaultMusicPlaylist'=>'builtin',
     ], is_array($data) ? array_intersect_key($data, array_flip(array_merge(bb_setting_keys(), ['music']))) : []);
+    if (!$defaults['musicPlaylists'] && !empty($defaults['music']) && is_array($defaults['music'])) {
+        $defaults['musicPlaylists'] = [['id'=>'custom','name'=>'自定义音乐','type'=>'tracks','tracks'=>bb_music_tracks($defaults['music'])]];
+    }
+    return $defaults;
 }
 function bb_setting_keys(): array
 {
-    return ['title','brandMark','author','blogUrl','feedUrl','cacheMinutes','faviconUrl','defaultHour','defaultWeather','defaultClouds','defaultBrightness'];
+    return ['title','brandMark','author','blogUrl','feedUrl','cacheMinutes','faviconUrl','defaultHour','defaultWeather','defaultClouds','defaultBrightness','musicPlaylists','defaultMusicPlaylist'];
 }
 function bb_dir(): string
 {
@@ -53,7 +59,9 @@ function bb_state(): ?array { return bb_read('state'); }
 function bb_settings(): array
 {
     $state = bb_state();
-    return array_merge(bb_defaults(), is_array($state['settings'] ?? null) ? $state['settings'] : []);
+    $settings = array_merge(bb_defaults(), is_array($state['settings'] ?? null) ? $state['settings'] : []);
+    if ($settings['defaultWeather'] === 'fog') $settings['defaultWeather'] = 'clear';
+    return $settings;
 }
 function bb_public_config(): array
 {
@@ -61,6 +69,9 @@ function bb_public_config(): array
     $settings['feedEndpoint'] = './api/feed.php';
     $settings['adminUrl'] = './admin/index.php';
     $settings['configured'] = $settings['feedUrl'] !== '';
+    $settings['musicEndpoint'] = './api/music.php';
+    $settings['musicPlaylists'] = array_map(static function ($playlist) { return ['id'=>$playlist['id'],'name'=>$playlist['name']]; }, $settings['musicPlaylists']);
+    unset($settings['music']);
     return $settings;
 }
 function bb_text($value, int $maximum, string $label, bool $required = false): string
@@ -96,7 +107,12 @@ function bb_validate_settings(array $input): array
         $result[$key] = $key === 'cacheMinutes' ? (int) $value : (float) $value;
     }
     $result['defaultWeather'] = $input['defaultWeather'] ?? '';
-    if (!in_array($result['defaultWeather'], ['clear','cloudy','rain','storm','snow','fog'], true)) throw new InvalidArgumentException('请选择有效的默认天气。');
+    if ($result['defaultWeather'] === 'fog') $result['defaultWeather'] = 'clear';
+    if (!in_array($result['defaultWeather'], ['clear','cloudy','rain','storm','snow'], true)) throw new InvalidArgumentException('请选择有效的默认天气。');
+    $result['musicPlaylists'] = bb_validate_playlists($input['musicPlaylists'] ?? []);
+    $selected = $input['defaultMusicPlaylist'] ?? 'builtin';
+    $ids = array_merge(['builtin'], array_column($result['musicPlaylists'], 'id'));
+    $result['defaultMusicPlaylist'] = is_string($selected) && in_array($selected, $ids, true) ? $selected : 'builtin';
     return $result;
 }
 function bb_password($password): string
@@ -221,7 +237,7 @@ function bb_feed_info(string $xml): array
     foreach ($items as $item) { if (count($titles) >= 5) break; $titles[] = $xpath->evaluate('string(./*[local-name()="title"][1])', $item); }
     return ['title'=>$title,'count'=>$items->length,'titles'=>$titles];
 }
-function bb_fetch_feed(string $url): array
+function bb_fetch_document(string $url, int $limit = 4194304, string $label = 'RSS'): array
 {
     if (!function_exists('curl_init')) throw new RuntimeException('请在 PHP 中启用 cURL 扩展。');
     for ($hop = 0; $hop <= 3; $hop++) {
@@ -234,8 +250,8 @@ function bb_fetch_feed(string $url): array
             CURLOPT_PROTOCOLS=>CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_PROXY=>'', CURLOPT_ENCODING=>'',
             CURLOPT_RESOLVE=>[$host . ':' . $port . ':' . (strpos($ip, ':') !== false ? '[' . $ip . ']' : $ip)],
-            CURLOPT_WRITEFUNCTION=>static function ($handle, string $chunk) use (&$body,&$tooLarge): int {
-                if (strlen($body) + strlen($chunk) > 4 * 1024 * 1024) { $tooLarge = true; return 0; }
+            CURLOPT_WRITEFUNCTION=>static function ($handle, string $chunk) use (&$body,&$tooLarge,$limit): int {
+                if (strlen($body) + strlen($chunk) > $limit) { $tooLarge = true; return 0; }
                 $body .= $chunk; return strlen($chunk);
             },
             CURLOPT_HEADERFUNCTION=>static function ($handle, string $line) use (&$location): int {
@@ -244,13 +260,18 @@ function bb_fetch_feed(string $url): array
             },
         ]);
         $ok = curl_exec($curl); $status = curl_getinfo($curl, CURLINFO_HTTP_CODE); $error = curl_error($curl); curl_close($curl);
-        if ($tooLarge) throw new RuntimeException('RSS 超过 4 MB，请缩短订阅条数或正文长度。');
-        if ($ok === false) { error_log('[BlogBookstore RSS] ' . $error); throw new RuntimeException('RSS 连接失败，请检查网络、HTTPS 证书和地址。'); }
+        if ($tooLarge) throw new RuntimeException($label . '超过大小限制（' . ($limit / 1024 / 1024) . ' MB）。');
+        if ($ok === false) { error_log('[BlogBookstore ' . $label . '] ' . $error); throw new RuntimeException($label . '连接失败，请检查网络、HTTPS 证书和地址。'); }
         if (in_array($status, [301,302,303,307,308], true) && $location !== '') { $url = bb_redirect($location, $url); continue; }
-        if ($status !== 200) throw new RuntimeException('RSS 返回 HTTP ' . $status . '。');
-        return ['xml'=>$body,'fetchedAt'=>time(),'sourceUrl'=>$url,'info'=>bb_feed_info($body)];
+        if ($status !== 200) throw new RuntimeException($label . '返回 HTTP ' . $status . '。');
+        return ['body'=>$body,'fetchedAt'=>time(),'sourceUrl'=>$url];
     }
-    throw new RuntimeException('RSS 跳转次数过多。');
+    throw new RuntimeException($label . '跳转次数过多。');
+}
+function bb_fetch_feed(string $url): array
+{
+    $document = bb_fetch_document($url);
+    return ['xml'=>$document['body'],'fetchedAt'=>$document['fetchedAt'],'sourceUrl'=>$document['sourceUrl'],'info'=>bb_feed_info($document['body'])];
 }
 function bb_cached_feed(array $settings, bool $refresh = false): array
 {
