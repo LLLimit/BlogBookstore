@@ -30,6 +30,11 @@ function bb_playlist_id($value): string
     if (!preg_match('/^[a-zA-Z0-9]{1,80}$/', $value)) throw new InvalidArgumentException('请填写有效的歌单编号，或完整的网易云／QQ 歌单链接。');
     return $value;
 }
+function bb_playlist_enabled(array $playlist): bool
+{
+    // Old configurations predate this switch and remain enabled.
+    return !array_key_exists('enabled', $playlist) || in_array($playlist['enabled'], [true, 1, '1'], true);
+}
 function bb_validate_playlists($input): array
 {
     if (!is_array($input) || count($input) > 20) throw new InvalidArgumentException('最多配置 20 个歌单。');
@@ -42,7 +47,7 @@ function bb_validate_playlists($input): array
         $ids[$id] = true;
         $type = $row['type'] ?? 'tracks';
         if (!in_array($type, ['tracks','json','m3u','meting'], true)) throw new InvalidArgumentException('请选择有效的音乐来源。');
-        $playlist = ['id'=>$id, 'name'=>bb_text($row['name'], 60, '歌单名称', true), 'type'=>$type];
+        $playlist = ['id'=>$id, 'name'=>bb_text($row['name'], 60, '歌单名称', true), 'type'=>$type, 'enabled'=>bb_playlist_enabled($row)];
         if ($type === 'tracks') {
             $tracks = $row['tracks'] ?? [];
             if (isset($row['trackText'])) {

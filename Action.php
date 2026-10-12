@@ -54,6 +54,7 @@ class Action extends Contents implements ActionInterface
             'title' => $this->storeTitle(),
             'author' => trim((string) $this->options->plugin('BlogBookstore')->coverAuthor) ?: (string) $this->options->title,
             'adminUrl' => '',
+            'galleryUrl' => trim((string) $this->options->plugin('BlogBookstore')->galleryUrl),
             'musicPlaylists' => is_array($playlists) ? array_values(array_filter($playlists, 'is_array')) : [],
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
         // Vite is built with base './'; only generated asset attributes are rebased.

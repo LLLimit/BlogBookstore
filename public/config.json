@@ -7,10 +7,15 @@
   "feedEndpoint": "./api/feed.php",
   "cacheMinutes": 15,
   "faviconUrl": "",
+  "uiAccent": "#83baff",
   "defaultHour": 0.8,
   "defaultWeather": "clear",
   "defaultClouds": 56,
   "defaultBrightness": 1,
   "musicPlaylists": [],
-  "defaultMusicPlaylist": "builtin"
+  "defaultMusicPlaylist": "builtin",
+  "galleryUrl": "",
+  "galleryType": "smart-gallery",
+  "galleryAlbums": [],
+  "galleryMaxMB": 512
 }

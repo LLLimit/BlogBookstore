@@ -10,9 +10,9 @@ function bb_defaults(): array
     $defaults = array_merge([
         'title' => '博客书店', 'brandMark' => 'B', 'author' => '博客作者',
         'blogUrl' => '', 'feedUrl' => '', 'feedEndpoint' => './api/feed.php',
-        'cacheMinutes' => 15, 'faviconUrl' => '', 'defaultHour' => .8,
+        'cacheMinutes' => 15, 'faviconUrl' => '', 'uiAccent' => '#83baff', 'defaultHour' => .8,
         'defaultWeather' => 'clear', 'defaultClouds' => 56, 'defaultBrightness' => 1,
-        'musicPlaylists'=>[], 'defaultMusicPlaylist'=>'builtin',
+        'musicPlaylists'=>[], 'defaultMusicPlaylist'=>'builtin', 'galleryUrl'=>'', 'galleryType'=>'smart-gallery', 'galleryAlbums'=>[], 'galleryMaxMB'=>512,
     ], is_array($data) ? array_intersect_key($data, array_flip(array_merge(bb_setting_keys(), ['music']))) : []);
     if (!$defaults['musicPlaylists'] && !empty($defaults['music']) && is_array($defaults['music'])) {
         $defaults['musicPlaylists'] = [['id'=>'custom','name'=>'自定义音乐','type'=>'tracks','tracks'=>bb_music_tracks($defaults['music'])]];
@@ -21,7 +21,7 @@ function bb_defaults(): array
 }
 function bb_setting_keys(): array
 {
-    return ['title','brandMark','author','blogUrl','feedUrl','cacheMinutes','faviconUrl','defaultHour','defaultWeather','defaultClouds','defaultBrightness','musicPlaylists','defaultMusicPlaylist'];
+    return ['title','brandMark','author','blogUrl','feedUrl','cacheMinutes','faviconUrl','uiAccent','defaultHour','defaultWeather','defaultClouds','defaultBrightness','musicPlaylists','defaultMusicPlaylist','galleryUrl','galleryType','galleryAlbums','galleryMaxMB'];
 }
 function bb_dir(): string
 {
@@ -70,7 +70,10 @@ function bb_public_config(): array
     $settings['adminUrl'] = './admin/index.php';
     $settings['configured'] = $settings['feedUrl'] !== '';
     $settings['musicEndpoint'] = './api/music.php';
-    $settings['musicPlaylists'] = array_map(static function ($playlist) { return ['id'=>$playlist['id'],'name'=>$playlist['name']]; }, $settings['musicPlaylists']);
+    $settings['galleryEndpoint'] = './api/gallery.php';
+    $enabled = array_values(array_filter($settings['musicPlaylists'], 'bb_playlist_enabled'));
+    $settings['musicPlaylists'] = array_map(static function ($playlist) { return ['id'=>$playlist['id'],'name'=>$playlist['name']]; }, $enabled);
+    if (!in_array($settings['defaultMusicPlaylist'], array_merge(['builtin'], array_column($enabled, 'id')), true)) $settings['defaultMusicPlaylist'] = 'builtin';
     unset($settings['music']);
     return $settings;
 }
@@ -100,7 +103,12 @@ function bb_validate_settings(array $input): array
         'author' => bb_text($input['author'] ?? '', 60, '封面作者'),
         'blogUrl' => bb_url($input['blogUrl'] ?? ''), 'feedUrl' => bb_url($input['feedUrl'] ?? ''),
         'faviconUrl' => bb_url($input['faviconUrl'] ?? ''),
+        'galleryUrl' => bb_url($input['galleryUrl'] ?? ''),
+        'galleryType' => ($input['galleryType'] ?? '') === 'json' ? 'json' : 'smart-gallery',
     ];
+    $accent = $input['uiAccent'] ?? bb_settings()['uiAccent'];
+    if (!is_string($accent) || !preg_match('/^#[0-9a-fA-F]{6}$/D', $accent)) throw new InvalidArgumentException('界面配色需要填写六位十六进制颜色，例如 #83baff。');
+    $result['uiAccent'] = strtolower($accent);
     foreach (['cacheMinutes' => [5,1440], 'defaultHour' => [0,23.99], 'defaultClouds' => [0,100], 'defaultBrightness' => [0,1.8]] as $key => $bounds) {
         $value = $input[$key] ?? null;
         if (!is_scalar($value) || !is_numeric($value) || !is_finite((float) $value) || $value < $bounds[0] || $value > $bounds[1]) throw new InvalidArgumentException('缓存时间或场景数值超出允许范围。');
@@ -111,8 +119,15 @@ function bb_validate_settings(array $input): array
     if (!in_array($result['defaultWeather'], ['clear','cloudy','rain','storm','snow'], true)) throw new InvalidArgumentException('请选择有效的默认天气。');
     $result['musicPlaylists'] = bb_validate_playlists($input['musicPlaylists'] ?? []);
     $selected = $input['defaultMusicPlaylist'] ?? 'builtin';
-    $ids = array_merge(['builtin'], array_column($result['musicPlaylists'], 'id'));
+    $ids = array_merge(['builtin'], array_column(array_filter($result['musicPlaylists'], 'bb_playlist_enabled'), 'id'));
     $result['defaultMusicPlaylist'] = is_string($selected) && in_array($selected, $ids, true) ? $selected : 'builtin';
+    $albums=$input['galleryAlbums']??[];
+    if(is_string($albums))$albums=preg_split('/[,，\r\n]+/u',$albums,-1,PREG_SPLIT_NO_EMPTY);
+    if(!is_array($albums)||count($albums)>60)throw new InvalidArgumentException('最多选择 60 个相册。');
+    $result['galleryAlbums']=array_values(array_unique(array_map(static function($id){if(!is_string($id)&&!is_int($id))throw new InvalidArgumentException('相册编号或名称格式无效。');return bb_text((string)$id,100,'相册编号或名称',true);},$albums)));
+    $maximum=$input['galleryMaxMB']??512;
+    if(!is_scalar($maximum)||!ctype_digit((string)$maximum)||(int)$maximum<32||(int)$maximum>8192)throw new InvalidArgumentException('画册存储限额需要在 32–8192 MB 之间。');
+    $result['galleryMaxMB']=(int)$maximum;
     return $result;
 }
 function bb_password($password): string

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {animeMaterial} from './anime-material.js';
 import {products} from './products.js';
 
 export function createMerchandise(h){
@@ -16,7 +17,7 @@ export function createMerchandise(h){
       ctx.strokeStyle='#fff9';ctx.lineWidth=3;ctx.strokeRect(12,12,488,488);ctx.restore();
     });
   });
-  const labelMaterial=new THREE.MeshStandardMaterial({map:atlas,roughness:.58});
+  const labelMaterial=animeMaterial('#ffffff',{map:atlas});
   const prices=texture(1024,384,(ctx)=>{products.forEach((p,i)=>{const x=i%4*256,y=Math.floor(i/4)*128;ctx.fillStyle='#f5efdc';ctx.fillRect(x,y,256,128);ctx.fillStyle='#37584c';ctx.font='bold 30px "Microsoft YaHei"';ctx.fillText(p.name,x+12,y+41);ctx.font='bold 55px sans-serif';ctx.fillText(String(p.price),x+12,y+104);ctx.font='24px "Microsoft YaHei"';ctx.fillText('漫游币',x+77,y+99);});});
   const priceMaterial=new THREE.MeshBasicMaterial({map:prices});
   function price(index,x,y,z,parent){const geo=new THREE.PlaneGeometry(.18,.066),uv=geo.attributes.uv;for(let n=0;n<uv.count;n++)uv.setXY(n,(index%4+uv.getX(n))/4,1-(Math.floor(index/4)+1-uv.getY(n))/3);const mesh=new THREE.Mesh(geo,priceMaterial);mesh.position.set(x,y,z);parent.add(mesh);}

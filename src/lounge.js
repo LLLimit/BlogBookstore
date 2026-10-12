@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {addPottedPlant} from './plants.js';
 
 export function addLounge(scene,h,market){
   const {box,rainPane,cylinder,bar,material,texture,obstacle,point,emissives,metal,trim,ivory,oak,sideGlass}=h;
@@ -98,8 +99,7 @@ export function addLounge(scene,h,market){
   box(1.6,.09,.65,-4.61,floorY+.54,1.73,wood);obstacle(-4.61,1.73,1.7,.7,1);
   for(const x of [-5.24,-3.99])box(.065,.53,.065,x,floorY+.265,1.73,wood);
   for(const [x,z] of [[-5.93,3.55],[5.23,3.55]]){
-    cylinder(.19,.4,x,floorY+.2,z,material('#a98768'));cylinder(.17,.018,x,floorY+.41,z,material('#534b38'));
-    for(let n=0;n<10;n++){const a=n*2.4,height=.47+(n%4)*.17,end=[x+Math.sin(a)*.13,floorY+.41+height,z+Math.cos(a)*.13];bar([x,floorY+.4,z],end,.011,trim);const leaf=new THREE.Mesh(new THREE.SphereGeometry(1,10,8),material(n%2?'#718a5a':'#446954'));leaf.scale.set(.12,.25,.036);leaf.position.set(end[0],end[1],end[2]);leaf.rotation.set(.3,a,Math.sin(a)*.6);scene.add(leaf);}obstacle(x,z,.4,.4,1);
+    addPottedPlant(scene,{cylinder,bar,material},x,floorY,z,.92);obstacle(x,z,.4,.4,1);
   }
   // A fully stocked snack wall, cold drinks fridge and checkout counter.
   market.shelf(-4.3,floorY+.13,-3.68,3.9,4,scene);obstacle(-4.3,-3.68,4,.65,1);

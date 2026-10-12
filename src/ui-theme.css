@@ -1,0 +1,16 @@
+:root{--ui-accent:#83baff;--ui-accent-rgb:131 186 255;--ui-accent-light:#9ec9ff;--ui-accent-deep:#79abea;--ui-accent-text:#c7e0ff;--ui-accent-ink:#142435}
+body .header-note i{background:var(--ui-accent)}
+body .panel-moon,body .clock-row>span,body .welcome .eyebrow,body .book-prompt small,body .book-detail>small,body .reset-view:hover,body .time-presets button:hover{color:var(--ui-accent-text)}
+body .scene-panel input[type=range]{background:linear-gradient(90deg,#7888a5,var(--ui-accent))}
+body .scene-panel input[type=range]::-webkit-slider-thumb{background:var(--ui-accent);box-shadow:0 0 10px rgb(var(--ui-accent-rgb)/.2)}
+body .scene-panel input[type=range]::-moz-range-thumb{background:var(--ui-accent)}
+body .primary{border-color:var(--ui-accent);background:linear-gradient(120deg,var(--ui-accent-light),var(--ui-accent-deep));color:var(--ui-accent-ink);box-shadow:0 5px 20px rgb(var(--ui-accent-rgb)/.12)}
+body .weather-grid button.selected,body .time-speed button.selected,body .more{background:var(--ui-accent);color:var(--ui-accent-ink);box-shadow:0 4px 17px rgb(var(--ui-accent-rgb)/.12)}
+body .view-presets button.selected{color:var(--ui-accent-text);background:rgb(var(--ui-accent-rgb)/.12);border-color:rgb(var(--ui-accent-rgb)/.35)}
+body .lounge-entry,body .book-prompt .key{border-color:rgb(var(--ui-accent-rgb)/.3);color:var(--ui-accent-text)}
+body .lounge-entry:hover{background:rgb(var(--ui-accent-rgb)/.1)}
+body .prose a,body .prose code,body .original{color:var(--ui-accent-text)}
+body .prose blockquote{border-left-color:var(--ui-accent)}
+body #music-play{background:var(--ui-accent);color:var(--ui-accent-ink)}
+body .music-meta button[aria-pressed=true]{color:var(--ui-accent-text)}
+body button:focus-visible,body select:focus-visible,body input:focus-visible,body a:focus-visible{outline:2px solid var(--ui-accent);outline-offset:3px}

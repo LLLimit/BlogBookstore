@@ -5,7 +5,7 @@ require dirname(__DIR__) . '/api/bookstore.php';
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
-header("Content-Security-Policy: default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+header("Content-Security-Policy: default-src 'none'; connect-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
 header('Referrer-Policy: same-origin');
 function h($value): string { return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 function redirect_admin(string $message): void { $_SESSION['flash'] = $message; header('Location: ./index.php', true, 303); exit; }
@@ -91,7 +91,7 @@ $settings = $settings ?? bb_defaults();
 $csrf = $_SESSION['csrf'] ?? '';
 $weatherNames = ['clear'=>'晴朗','cloudy'=>'多云','rain'=>'小雨','storm'=>'暴雨','snow'=>'飘雪'];
 ?><!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>书店设置 · BlogBookstore</title><link rel="icon" href="../favicon.svg"><link rel="stylesheet" href="./style.css"></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>书店设置 · BlogBookstore</title><link rel="icon" href="../favicon.svg"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./appearance-settings.css"></head>
 <body><div class="shell"><header class="topbar"><a class="identity" href="../"><span class="logo">B</span><span><strong>BlogBookstore</strong><small>把你的博客，放进一间书店。</small></span></a><div class="top-actions"><a class="button subtle" href="../" target="_blank" rel="noopener">打开书店 ↗</a><?php if ($authenticated): ?><form method="post"><input type="hidden" name="csrf" value="<?=h($csrf)?>"><button class="button subtle" name="action" value="logout">退出登录</button></form><?php endif ?></div></header>
 <?php if ($error): ?><div class="notice error" role="alert"><?=h($error)?></div><?php endif ?>
 <?php if ($message): ?><div class="notice success" role="status"><?=h($message)?></div><?php endif ?>
@@ -109,7 +109,9 @@ $weatherNames = ['clear'=>'晴朗','cloudy'=>'多云','rain'=>'小雨','storm'=>
 <section class="card"><div class="card-heading"><span class="section-number">02</span><div><h2>文章订阅</h2><p>支持 RSS 2.0、RSS 1.0 和 Atom；填写订阅地址。</p></div></div><label>RSS / Atom 地址<input name="feedUrl" type="url" value="<?=h($settings['feedUrl'])?>" placeholder="https://your-blog.example/feed.xml"></label><div class="fields two"><label>缓存时间（分钟）<input name="cacheMinutes" type="number" min="5" max="1440" step="1" value="<?=h($settings['cacheMinutes'])?>" required></label><div class="field-note">缓存期间访客复用同一份订阅。博客发布新文章后会在缓存到期时更新，也可手动立即更新。</div></div><button class="button secondary" name="action" value="check">测试当前订阅</button><p class="hint">测试不会保存设置。能读取的历史篇数与正文长度由博客订阅决定。</p>
 <?php if ($probe): ?><div class="feed-preview"><strong><?=h($probe['title'] ?: '未命名订阅')?></strong><small>共 <?=h($probe['count'])?> 篇 · 前五篇预览</small><ol><?php foreach ($probe['titles'] as $title): ?><li><?=h($title)?></li><?php endforeach ?></ol></div><?php endif ?></section>
 <section class="card"><div class="card-heading"><span class="section-number">03</span><div><h2>默认场景</h2><p>访客仍然可以在书店中调整天气与时间。</p></div></div><div class="fields two"><label>时间（0–23.99 时）<input name="defaultHour" type="number" min="0" max="23.99" step=".01" value="<?=h($settings['defaultHour'])?>" required></label><label>天气<select name="defaultWeather"><?php foreach ($weatherNames as $value=>$label): ?><option value="<?=h($value)?>" <?= $settings['defaultWeather'] === $value ? 'selected' : '' ?>><?=h($label)?></option><?php endforeach ?></select></label><label>云量（%）<input name="defaultClouds" type="number" min="0" max="100" step="1" value="<?=h($settings['defaultClouds'])?>" required></label><label>灯光亮度（0–1.8）<input name="defaultBrightness" type="number" min="0" max="1.8" step=".05" value="<?=h($settings['defaultBrightness'])?>" required></label></div></section>
+<?php require __DIR__ . '/appearance-settings.php'; ?>
 <?php require __DIR__ . '/music-settings.php'; ?>
+<?php require __DIR__ . '/gallery-settings.php'; ?>
 <div class="save-bar"><span>设置保存到服务器，对所有访客生效。</span><button class="button primary" name="action" value="save">保存设置 →</button></div></form>
 <aside class="sidebar"><section class="card"><span class="eyebrow">FEED STATUS</span><h2>馆藏更新</h2><?php if ($cached): ?><strong class="stat-number"><?=h($cached['info']['count'])?><small>篇文章</small></strong><p><?=h($cached['info']['title'])?></p><p class="hint">最近获取于 <?=h(gmdate('Y-m-d H:i', $cached['fetchedAt']))?> UTC</p><?php else: ?><p class="hint">尚未缓存文章。设置 RSS 后打开书店，或点击立即更新。</p><?php endif ?><form method="post"><input type="hidden" name="csrf" value="<?=h($csrf)?>"><button class="button secondary wide" name="action" value="refresh" <?= $settings['feedUrl'] ? '' : 'disabled' ?>>立即更新已保存的 RSS</button></form></section>
 <section class="card"><h2>配置备份</h2><p class="hint">下载书店与完整歌单设置，不包含管理员密码。可用于迁移；纯静态部署时请使用无需私密密钥的音乐来源。</p><form method="post"><input type="hidden" name="csrf" value="<?=h($csrf)?>"><button class="button secondary wide" name="action" value="export">下载配置</button></form></section>

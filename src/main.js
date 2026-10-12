@@ -1,12 +1,15 @@
 import './style.css';
+import {applyUiAccent} from './ui-theme.js';
 import {parseFeed,cleanContent,safeUrl,getText,getFeed} from './articles.js';
 import {initMusic} from './music-player.js';
 import {products} from './products.js';
+import {initPhotoAlbum} from './photo-album.js';
 
 const $=id=>document.getElementById(id), coarse=matchMedia('(pointer:coarse)').matches;
 const base=import.meta.env.BASE_URL;
 let config={title:'博客书店',brandMark:'B',author:'博客作者',blogUrl:'',feedUrl:'',feedEndpoint:'./api/feed.php',cacheMinutes:15,defaultHour:.8,defaultWeather:'clear',defaultClouds:56,defaultBrightness:1}, articles=[], game=null, started=false, current=null, page=0, hasMore=false, shelfPage=0, toastTimer;
-const dialogs=['catalog','reader','help','shop-menu'].map($);
+const dialogs=['catalog','reader','help','shop-menu','photo-album'].map($);
+let photoAlbum;
 let coins=50,purchases=0;
 let resumeAfterDialog=false;
 let escapeDown=false,pendingEscapeResume=false;
@@ -16,7 +19,7 @@ function storageRead(key){try{return JSON.parse(localStorage.getItem(key)||'null
 function storageWrite(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch{/* Private browsers can still read without saving. */}}
 const progressKey=a=>'bookstore:progress:'+(a.url||config.feedUrl+':'+a.id);
 function dateLabel(date){const value=new Date(date);return isNaN(value)?'博客文章':value.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'});}
-function aim(article){$('book-prompt').hidden=!article||dialogs.some(d=>d.open)||!started;$('touch-read').disabled=!article;if(article){$('book-title').textContent=article.title;$('book-prompt').querySelector('small').textContent=article.kind==='shop'?'和掌柜聊聊':'拿起这本书';$('touch-read').textContent=article.kind==='shop'?'逛货架':'阅读';}}
+function aim(article){$('book-prompt').hidden=!article||dialogs.some(d=>d.open)||!started;$('touch-read').disabled=!article;if(article){$('book-title').textContent=article.title;$('book-prompt').querySelector('small').textContent=article.kind==='album'?'翻开照片画册':article.kind==='shop'?'和掌柜聊聊':'拿起这本书';$('touch-read').textContent=article.kind==='shop'?'逛货架':'阅读';}}
 function pause(){game?.pause();$('crosshair').hidden=true;$('book-prompt').hidden=true;$('touch-controls').hidden=true;}
 function showPauseMenu(reason){pendingEscapeResume=false;pause();if(started&&!dialogs.some(d=>d.open)){const failed=reason?.kind==='pointer-lock';$('pause-title').textContent=failed?'无法锁定鼠标':'漫游已暂停';$('lock-notice').hidden=!failed;if(failed)$('browser-preview-address').value=location.href;$('resume').hidden=false;$('resume-btn').focus({preventScroll:true});}}
 function startWalk(){$('resume').hidden=true;$('lock-notice').hidden=true;$('crosshair').hidden=false;$('touch-controls').hidden=!coarse;}
@@ -99,7 +102,7 @@ function renderShop(){
   $('wallet-count').textContent=coins;$('snack-bag').textContent=purchases?`已带走 ${purchases} 件商品`:'挑一份零食，配一本好书。';$('snack-list').replaceChildren();
   products.forEach(p=>{const button=document.createElement('button');button.className='snack-card';button.disabled=coins<p.price;button.style.setProperty('--pack-color',p.color);const image=document.createElement('span');image.className='snack-art '+p.type;image.textContent=p.icon;const label=document.createElement('strong');label.textContent=p.name;const detail=document.createElement('small');detail.textContent=p.detail;const price=document.createElement('span');price.className='snack-price';price.textContent=`${p.price} 漫游币 · 取一份`;button.append(image,label,detail,price);button.addEventListener('click',()=>{if(coins>=p.price){coins-=p.price;purchases++;renderShop();toast(`掌柜递给你一份${p.name}。`);}});$('snack-list').append(button);});
 }
-function read(article){if(article.kind==='shop'){renderShop();showDialog($('shop-menu'));return;}current=article;if($('catalog').open)$('catalog').close();$('reader-title').textContent=article.title;$('reader-meta').textContent=article.category+' / '+dateLabel(article.date);$('reader-index').textContent=`第 ${articles.indexOf(article)+1} 本 · ${config.title}`;
+function read(article){if(article.kind==='album'){photoAlbum?.open();return;}if(article.kind==='shop'){renderShop();showDialog($('shop-menu'));return;}current=article;if($('catalog').open)$('catalog').close();$('reader-title').textContent=article.title;$('reader-meta').textContent=article.category+' / '+dateLabel(article.date);$('reader-index').textContent=`第 ${articles.indexOf(article)+1} 本 · ${config.title}`;
   const content=$('reader-content');content.replaceChildren(cleanContent(article.content,article.url));if(!content.textContent.trim()){const p=document.createElement('p');p.textContent='RSS 尚未提供正文，请点击下方链接阅读原文。';content.append(p);}
   const href=safeUrl(article.url,config.blogUrl);$('original').href=href||config.blogUrl;$('original').hidden=!href;showDialog($('reader'));
   requestAnimationFrame(()=>{$('reader').querySelector('.reader-scroll').scrollTop=storageRead(progressKey(article))?.top||0;});
@@ -119,12 +122,13 @@ async function init(){
     catch{try{const response=await fetch(base+'config.json',{cache:'no-store'});if(response.ok)config={...config,...await response.json()};}catch{}}
   }
   config={...config,...window.BOOKSTORE_CONFIG};config.title=String(config.title||'博客书店');config.blogUrl=safeUrl(config.blogUrl,location.href);
+  applyUiAccent(config.uiAccent);
   document.title=config.title+' · 在文字里停留';document.querySelector('.brand>span:last-child').firstChild.textContent=config.title;document.querySelector('.brand-icon').textContent=Array.from(String(config.brandMark||'B')).slice(0,4).join('');$('panel-title').textContent=config.title;$('blog-link').href=config.blogUrl||'#';$('blog-link').hidden=!config.blogUrl;
-  $('admin-link').hidden=!!config.apiUrl||!config.feedEndpoint;$('admin-link').href=new URL(config.adminUrl||base+'admin/index.php',location.href);
   const favicon=safeUrl(config.faviconUrl,location.href);if(favicon){const icon=document.querySelector('link[rel="icon"]');icon.href=favicon;icon.removeAttribute('type');}
   const music=initMusic(config,toast);if(import.meta.env.DEV)window.__music=music;
+  photoAlbum=initPhotoAlbum(config,showDialog,toast);
   try{const {createBookstore}=await import('./scene.js');game=createBookstore($('world'),read,aim,showPauseMenu,startWalk);if(coarse){game.setQuality();$('quality-btn').textContent='画质 · 流畅';}game.renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();showPauseMenu();toast('3D 画面已暂停，你仍可通过馆藏目录阅读。');});}
-  catch(error){console.error('3D 书店初始化失败',error);document.body.classList.add('no-webgl');$('quality-btn').hidden=true;toast('当前设备无法显示 3D，馆藏目录仍然可以阅读。');}
+  catch(error){console.error('3D 书店初始化失败',error);$('world').replaceChildren();document.body.classList.add('no-webgl');$('quality-btn').hidden=true;$('enter-label').textContent='打开馆藏目录';toast('当前浏览器无法显示 3D，可打开馆藏目录阅读，或用 Edge／Chrome 打开本站。');}
   game?.setTitle(config.title);
   game?.setAuthor(config.author);
   setTime(Number.isFinite(Number(config.defaultHour))?Math.min(23.99,Math.max(0,Number(config.defaultHour))):.8);

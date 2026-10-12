@@ -11,6 +11,7 @@ import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {createDistrict} from './district.js';
 import {createAtmosphere} from './atmosphere.js';
 import {createWalkLook} from './walk-look.js';
+import {animeMaterial,setAnimeDaylight} from './anime-material.js';
 
 const palette=['#395957','#a16347','#b79c6e','#535d7b','#985355','#67785b','#ad8a50','#527586'];
 export function createBookstore(container,onRead,onAim,onPause,onStart){
@@ -33,6 +34,13 @@ export function createBookstore(container,onRead,onAim,onPause,onStart){
   ao.render=(...args)=>{ao.ssaoMaterial.uniforms.cameraProjectionMatrix.value.copy(camera.projectionMatrix);ao.ssaoMaterial.uniforms.cameraInverseProjectionMatrix.value.copy(camera.projectionMatrixInverse);const hidden=[];scene.traverse(o=>{if(o.visible&&(o.userData.sky||o.userData.snowCover||(o.isMesh&&(o.isReflector||o.material.transparent)))){hidden.push(o);o.visible=false;}});try{aoRender(...args);}finally{hidden.forEach(o=>o.visible=true);}};
   // Contact shadows use the full drawing resolution so thin book spines keep clean edges.
   composer.addPass(ao);
+  // Fine ink accents use geometry normals, so printed text and wood grain stay clean.
+  const ink=new ShaderPass({uniforms:{tDiffuse:{value:null},tNormal:{value:ao.normalRenderTarget.texture},texel:{value:new THREE.Vector2(1/innerWidth,1/innerHeight)}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:`uniform sampler2D tDiffuse;uniform sampler2D tNormal;uniform vec2 texel;varying vec2 vUv;
+    void main(){vec4 c=texture2D(tDiffuse,vUv);vec3 n=texture2D(tNormal,vUv).rgb;float e=0.;
+    e=max(e,length(n-texture2D(tNormal,vUv+vec2(texel.x,0.)).rgb));e=max(e,length(n-texture2D(tNormal,vUv-vec2(texel.x,0.)).rgb));
+    e=max(e,length(n-texture2D(tNormal,vUv+vec2(0.,texel.y)).rgb));e=max(e,length(n-texture2D(tNormal,vUv-vec2(0.,texel.y)).rgb));
+    float line=smoothstep(.35,.68,e)*.24;gl_FragColor=vec4(mix(c.rgb,c.rgb*vec3(.31,.37,.49),line),c.a);}`});
+  const renderInk=ink.render.bind(ink);ink.render=(...args)=>{ink.uniforms.texel.value.set(.8/ao.normalRenderTarget.width,.8/ao.normalRenderTarget.height);renderInk(...args);};composer.addPass(ink);
   // Close-up lamps can exceed a half-float buffer. Bound highlights before they enter bloom.
   const highlights=new ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'uniform sampler2D tDiffuse;varying vec2 vUv;float safe(float v){if(!(v>=0.||v<=0.))return 0.;return clamp(v,0.,24.);}void main(){vec4 c=texture2D(tDiffuse,vUv);gl_FragColor=vec4(safe(c.r),safe(c.g),safe(c.b),1.);}'});composer.addPass(highlights);
   const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.24,.52,1.65);composer.addPass(bloom);
@@ -51,6 +59,7 @@ export function createBookstore(container,onRead,onAim,onPause,onStart){
   frameCamera();orbit.addEventListener('change',()=>dirty=true);
   function lighting(){
     const {day,overcast,horizon,sunPosition,night,warmth}=atmosphere.conditions(currentHour,weather,cloudAmount);
+    setAnimeDaylight(day,brightness);
     scene.fog.color.copy(horizon);scene.fog.density=weather==='storm'?.022:weather==='rain'?.011:.0035;
     hemisphere.intensity=.22+day*.75;hemisphere.color.set(day>.2?'#c1ddeb':'#7e9bdb').lerp(new THREE.Color('#f7b781'),warmth*.5);sun.intensity=day*2.2*(1-overcast*.8)+night*.11;sun.color.set(day>.03?'#fff0d3':'#a0b5f5').lerp(new THREE.Color('#ff9148'),warmth);sun.position.copy(day>.03?sunPosition:new THREE.Vector3(-12,20,-5));
     scene.environmentIntensity=.11+day*.39;renderer.toneMappingExposure=THREE.MathUtils.lerp(1.1,.95,day);district.setLighting(day,brightness,night);baseSun=sun.intensity;baseHemi=hemisphere.intensity;dirty=true;
@@ -59,9 +68,10 @@ export function createBookstore(container,onRead,onAim,onPause,onStart){
   let coverAuthor='博客作者';
   function makeCover(article,index){return district.texture(512,704,(ctx,w,h)=>{ctx.fillStyle=palette[index%8];ctx.fillRect(0,0,w,h);ctx.fillStyle='#0002';ctx.fillRect(0,0,20,h);ctx.strokeStyle='#e4dbc180';ctx.strokeRect(35,30,w-62,h-60);ctx.fillStyle='#f1e8cb';ctx.font='18px sans-serif';ctx.fillText('GOODNIGHT / ESSAYS',54,78);ctx.font='500 34px "Microsoft YaHei",sans-serif';let line='',lines=[];for(const char of article.title){if(ctx.measureText(line+char).width>390){lines.push(line);line='';}line+=char;}if(line)lines.push(line);lines.slice(0,8).forEach((v,i)=>ctx.fillText(v,54,157+i*48));ctx.font='italic 40px Georgia';ctx.fillText(String(index+1).padStart(2,'0'),w-110,h-69);ctx.font='20px sans-serif';ctx.fillText(article.author||coverAuthor,54,h-66,w-165);});}
   const paper=district.material('#ece7d6');
-  function addBook(article,index,x,y,z,parent=scene){const g=new THREE.Group();g.position.set(x,y,z);g.scale.setScalar(.7);parent.add(g);const coverMaterial=new THREE.MeshStandardMaterial({color:palette[index%8],roughness:.64});district.box(.47,.69,.09,0,.345,0,coverMaterial,g);district.box(.44,.655,.078,.01,.345,.003,paper,g);const mesh=new THREE.Mesh(new THREE.PlaneGeometry(.47,.69),new THREE.MeshStandardMaterial({map:makeCover(article,index),roughness:.66}));mesh.position.set(0,.345,.052);mesh.userData.article=article;g.add(mesh);targets.push(mesh);books.push(g);return g;}
+  function addBook(article,index,x,y,z,parent=scene){const g=new THREE.Group();g.position.set(x,y,z);g.scale.setScalar(.7);parent.add(g);const coverMaterial=animeMaterial(palette[index%8],{cel:true});district.box(.47,.69,.09,0,.345,0,coverMaterial,g);district.box(.44,.655,.078,.01,.345,.003,paper,g);const mesh=new THREE.Mesh(new THREE.PlaneGeometry(.47,.69),animeMaterial('#ffffff',{map:makeCover(article,index),cel:true}));mesh.position.set(0,.345,.052);mesh.userData.article=article;g.add(mesh);targets.push(mesh);books.push(g);return g;}
   function setArticles(articles,offset=0){if(hovered){hovered=null;onAim(null);}for(const g of books){g.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(o.material!==paper){o.material.map?.dispose();o.material.dispose();}}});g.removeFromParent();}books.length=0;targets.length=0;
-    articles.slice(0,24).forEach((a,i)=>addBook(a,i+offset,-1.16+(i%4)*.77,i%8<4?1.20:2.17,.24,district.shelves[Math.floor(i/8)]));articles.slice(0,3).forEach((a,i)=>{const book=addBook(a,i+offset,-1.32+i*.82,1.14,.24);book.rotation.x=-Math.PI/2;});
+    for(const placeholder of district.bookPlaceholders)placeholder.visible=!articles.length;
+    if(articles.length)district.bookSlots.forEach((slot,i)=>{const index=i%Math.min(articles.length,24),book=addBook(articles[index],index+offset,slot.x,slot.y,slot.z);book.rotation.order='YXZ';book.rotation.y=slot.yaw;book.rotation.x=slot.tilt??(slot.flat?-Math.PI/2:0);});
     dirty=true;}
   function aim(ndc=new THREE.Vector2()){ray.setFromCamera(ndc,camera);const hit=ray.intersectObjects([...targets,...district.interactionTargets]).find(h=>h.distance<3.4),next=hit?.object||null;if(next!==hovered){if(hovered)hovered.material.emissive?.set('#000');hovered=next;if(next)next.material.emissive?.set('#39352b');onAim(next?.userData.article||next?.userData.interaction||null);dirty=true;}return next;}
   function read(){if(hovered)onRead(hovered.userData.article||hovered.userData.interaction);}

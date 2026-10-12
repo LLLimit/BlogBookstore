@@ -6,7 +6,9 @@ function sync(){
     card.querySelectorAll('[name]').forEach(el=>{el.name=el.name.replace(/musicPlaylists\[\d+\]/,`musicPlaylists[${i}]`);});
     const id=card.querySelector('[data-playlist-id]').value,name=card.querySelector('[data-playlist-name]').value.trim();
     card.querySelector('[data-test-playlist]').value=id;
-    if(name)defaults.add(new Option(name,id));
+    const enabled=card.querySelector('[data-playlist-enabled]').checked;
+    card.dataset.enabled=String(enabled);
+    if(name&&enabled)defaults.add(new Option(name,id));
     const type=card.querySelector('[data-source-type]').value;
     card.querySelectorAll('[data-source-fields]').forEach(group=>{
       group.hidden=!group.dataset.sourceFields.split(' ').includes(type);

@@ -16,6 +16,7 @@ export default defineConfig(async({command,mode,isPreview})=>{
   let child;
   async function startBackend(server){
     server.middlewares.use((req,res,next)=>{
+      if(/^\/admin(?:\?.*)?$/.test(req.url||'')){res.statusCode=302;res.setHeader('Location','/admin/');res.end();return;}
       let path;
       try{path=decodeURIComponent((req.url||'').split('?')[0]);}catch{res.statusCode=400;res.end();return;}
       if(/(?:^|\/)\.(?:bookstore|local|git)(?:\/|$)|(?:^|\/)\.env(?:\.|\/|$)/i.test(path)

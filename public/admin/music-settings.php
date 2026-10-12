@@ -7,6 +7,9 @@ function music_card(array $row, int $i): void {
 <div class="playlist-card" data-playlist-card>
 <input type="hidden" data-playlist-id name="<?=$key?>[id]" value="<?=h($id)?>">
 <div class="playlist-heading"><strong>音乐歌单</strong><button class="button subtle" type="button" data-remove-playlist>删除歌单</button></div>
+<input type="hidden" name="<?=$key?>[enabled]" value="0">
+<label class="playlist-toggle"><input type="checkbox" data-playlist-enabled name="<?=$key?>[enabled]" value="1" <?=bb_playlist_enabled($row)?'checked':''?>>在前端显示此歌单</label>
+<p class="hint">关闭后保留配置，访客无法选择或读取此歌单。</p>
 <div class="fields two"><label>歌单名称<input data-playlist-name name="<?=$key?>[name]" value="<?=h($row['name'] ?? '')?>" maxlength="60" placeholder="例如：阅读时光"></label><label>音乐来源<select aria-label="音乐来源" data-source-type name="<?=$key?>[type]">
 <?php foreach (['tracks'=>'音频直链列表','json'=>'JSON 歌单地址','m3u'=>'M3U 歌单地址','meting'=>'网易云 / QQ / 酷狗 · Meting API'] as $value=>$label): ?><option value="<?=$value?>" <?=$type===$value?'selected':''?>><?=h($label)?></option><?php endforeach ?>
 </select></label></div>
@@ -19,7 +22,7 @@ function music_card(array $row, int $i): void {
 $musicRows = $settings['musicPlaylists'] ?? [];
 ?>
 <section class="card" id="music-settings"><div class="card-heading"><span class="section-number">04</span><div><h2>音乐来源与歌单</h2><p>配置后，访客可以在播放器中选择歌单及歌曲。</p></div></div>
-<label>默认歌单<select aria-label="默认歌单" name="defaultMusicPlaylist" id="default-music-playlist"><option value="builtin">书店原创</option><?php foreach ($musicRows as $row): ?><option value="<?=h($row['id'])?>" <?=($settings['defaultMusicPlaylist']??'builtin')===$row['id']?'selected':''?>><?=h($row['name'])?></option><?php endforeach ?></select></label>
+<label>默认歌单<select aria-label="默认歌单" name="defaultMusicPlaylist" id="default-music-playlist"><option value="builtin">书店原创</option><?php foreach ($musicRows as $row): if (!bb_playlist_enabled($row)) continue; ?><option value="<?=h($row['id'])?>" <?=($settings['defaultMusicPlaylist']??'builtin')===$row['id']?'selected':''?>><?=h($row['name'])?></option><?php endforeach ?></select></label>
 <p class="hint">保留三首内置原创音乐。外部歌单只缓存歌曲信息五分钟，音频由访客浏览器从音频地址直接播放。</p>
 <div id="playlist-cards"><?php foreach ($musicRows as $i=>$row) music_card($row, $i); ?></div>
 <button class="button secondary" type="button" id="add-playlist">＋ 添加歌单</button>

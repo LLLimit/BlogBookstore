@@ -29,6 +29,19 @@
 
 BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书店，不限定博客系统、作者或域名。访客可以调整昼夜、天气和音乐，从书架取下文章阅读；站长通过独立 PHP 后台管理订阅和场景。
 
+## 1.7.2 更新
+
+本次汇总自 GitHub 1.5.0 发布以来的画册、后台设置和场景改进，并包含正式站相册读取问题的修复。完整记录见 [CHANGELOG](CHANGELOG.md)。
+
+- **Travel Time 画册**：深墨色杂志式封面、飞机 Logo、连续弯曲纸页与移动阴影；16:9 等横幅照片跨左右两页，其他照片单页展示。
+- **相册接入与缓存**：支持 Smart-Gallery 公开相册页面和通用 JSON；在后台指定展示相册，每 24 小时检查更新，下载图片到本地并提前加载，保留手动同步和失败后的旧缓存。
+- **照片日期与故事**：后台逐张填写和保存；翻阅时显示，日常同步不会覆盖这些信息。
+- **后台与音乐**：前台隐藏设置入口，手动访问 `/admin`；可选择高亮配色，每个歌单可单独启用或隐藏。
+- **场景细节**：一楼双面书架与四周展示桌、书本支架、双自动售货机、自行车篮筐，以及动漫风格材质、植物与灯光调整。
+- **相册读取修复**：后台允许同站接口请求，修复 `Failed to fetch`；移除不兼容 PHP 7.4 的 `match` 语法；改进空缓存恢复、图片来源校验和错误提示。
+
+每日下载、照片故事编辑和相册管理属于独立 PHP 版；纯静态和 Typecho 插件模式通过 JSON 读取画册。详见 [画册设置](docs/photo-album.md)、[配色与歌单](docs/appearance-and-playlists.md)和[材质与灯光](docs/stylized-rendering.md)。
+
 ## 在线演示
 
 [进入 LLLimit'书店](https://book.darkduck.fun/)
@@ -66,6 +79,8 @@ BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书
 | 🌦️ 动态氛围 | 昼夜流转、日落、云团和雨雪；随风雨滴、落地波纹、窗面水珠与屋檐滴水，暴雨时水流更密、更快；飘雪时路面、人行道、路沿和屋顶逐渐积雪 |
 | 🎵 音乐与操作 | 原创 Lo-fi、后台配置多个歌单、音频直链、JSON/M3U 与兼容 Meting API 的网易云/QQ/酷狗歌单；本机音频、电脑鼠标锁定与手机摇杆 |
 | 🔖 阅读体验 | 阅读位置与字号记忆；无法显示 3D 时可从目录阅读 |
+| 🖼️ 照片画册 | Travel Time 翻页画册、横幅跨页、后台相册选择与日期故事、每日同步、本地图片缓存和提前加载 |
+| 🎨 个性设置 | 后台高亮配色、歌单显示开关；双面书架、桌面书本支架与动漫风格材质 |
 | 📦 独立部署 | 无需数据库、Docker 或常驻 Node 服务；3D 在访客浏览器运行 |
 
 文章数量与正文长度由上游订阅决定。单份 RSS 上限 4 MB；前端最多展示 1000 篇，实体书架每批 24 本。
@@ -74,11 +89,18 @@ BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书
 
 | 文件 | 用途 |
 | --- | --- |
-| BlogBookstore-standalone-1.5.0.zip | 独立部署，包含 PHP 设置后台 |
-| BlogBookstore-source-1.5.0.zip | 通用源码，适合 GitHub 项目与二次开发 |
-| BlogBookstore-1.5.0.zip | 可选 Typecho 插件，直接读取本站文章 |
+| BlogBookstore-standalone-1.7.2.zip | 独立部署，包含 PHP 设置后台与相册缓存接口 |
+| BlogBookstore-source-1.7.2.zip | 通用源码，包含文档和可选相册桥接插件源码 |
+| BlogBookstore-1.7.2.zip | 可选 Typecho 插件，直接读取本站文章 |
+| BookstoreGallery-1.0.0.zip | 可选相册桥接插件，把 SmartGallery 公开相册提供为 JSON；读取相册页面时无需安装 |
 
-发布包不包含个人博客地址、文章、密码、缓存或本地运行环境。所有 ZIP 的顶层目录均为 BlogBookstore。
+通用发布包不携带个人订阅配置、照片、音乐、密码、缓存或本地运行环境。书店 ZIP 的顶层目录为 BlogBookstore；相册桥接插件 ZIP 的顶层目录为 BookstoreGallery。
+
+### 从旧版升级
+
+备份网站，将独立包 `BlogBookstore/` 内的内容覆盖到网站根目录，保留原来的 `.bookstore/`、自定义音乐和图片。无需重新安装后台，已有设置优先于包内默认配置。登录 `/admin` 保存相册来源及展示相册，再检查下载更新。需要无人访问时也每天更新，按 [画册说明](docs/photo-album.md)添加服务器计划任务。
+
+已安装过 1.7.1 个人包或相册补丁的站点，覆盖完整 1.7.2 即包含本次修复；不要用旧补丁再次覆盖新版文件。
 
 ## 快速开始：独立部署
 
@@ -86,7 +108,7 @@ BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书
 
 1. 解压独立包，把 **BlogBookstore 内部的内容**上传到网站根目录。
 2. 首页使用 index.html，不需要 Typecho 的伪静态规则。
-3. 打开网站的 **/admin/index.php**。
+3. 在网站网址后添加 **/admin** 进入后台，前台导航不展示设置入口。
 4. 首次打开后，在服务器文件管理器中打开网站根目录的 **.bookstore/install-key.php**，复制 key 的值作为安装码。
 5. 填写安装码，设置12–72 字节的管理员密码（建议使用至少 12 个 ASCII 字符）。成功后安装码文件自动删除。
 6. 填写名称、博客首页和完整 RSS / Atom 地址，点击“测试当前订阅”，再“保存设置”。
@@ -278,3 +300,9 @@ Typecho 模式使用原有插件设置，独立 RSS 模式使用 /admin/index.ph
 作者：[LLLimit](https://github.com/LLLimit)。欢迎通过 [Issues](https://github.com/LLLimit/BlogBookstore/issues) 反馈问题。
 
 项目采用 [MIT License](LICENSE)。第三方许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)，修改与分发时请保留相应版权和许可文本。
+
+## 照片画册（1.7.1）
+
+Travel Time 极简杂志封面配飞机 Logo；支持连续弯曲翻页、纸张厚度与移动阴影。16:9 等横幅跨两页，其余单页。接入 Smart-Gallery 页面、BookstoreGallery 接口或 JSON，在后台勾选要展示的画册，并逐张设置日期时间与故事。前台只提供翻阅入口；手动访问 `/admin` 进入后台。
+
+独立 PHP 版每隔 24 小时检查更新，将图片下载到本地；保留原图，启用 GD 时生成轻量 WebP 展示图。进入网站即预加载照片，后台提供手动检查、下载和同步状态。无人访问也要更新时，设置服务器计划任务运行 `php /网站根目录/api/gallery-cron.php`；大相册可每 5 分钟运行以继续未完成下载，仍按 24 小时检查来源。详见[画册接入与升级说明](docs/photo-album.md)。

@@ -16,7 +16,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * @package BlogBookstore
  * @author LLLimit
  * @link https://github.com/LLLimit
- * @version 1.5.0
+ * @version 1.7.2
  * @since 1.3.0
  */
 class Plugin implements PluginInterface
@@ -46,6 +46,7 @@ class Plugin implements PluginInterface
             '书架自动读取本博客的公开文章，无需手动导入。<br><a href="' . $url . '" target="_blank" rel="noopener">打开 3D 书店</a>'
             . ' · <a href="' . $fallback . '" target="_blank" rel="noopener">备用入口</a>'));
         $form->addInput(new Text('coverAuthor', null, (string) $options->title, '默认封面作者', '文章封面与馆藏目录使用的作者署名。'));
+        $form->addInput(new Text('galleryUrl', null, '', '照片画册 JSON 地址', '可启用 BookstoreGallery 后填写其接口地址；也支持通用画册 JSON。来源需允许跨域。独立站版本可以在书店后台直接填写 Smart-Gallery 相册页面。'));
         $form->addInput(new Textarea('musicPlaylists', null, '[]', '音乐歌单（JSON）', '使用 README 中的 musicPlaylists 格式，支持直链、JSON/M3U 和兼容 Meting API 的歌单。插件模式由浏览器获取远程歌单，来源需允许跨域访问。'));
     }
 

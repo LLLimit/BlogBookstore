@@ -18,7 +18,7 @@ if (!/@author\s+LLLimit\b/.test(plugin) || !/@link\s+https:\/\/github\.com\/LLLi
 const version = plugin.match(/@version\s+([\d.]+)/)?.[1];
 if (!version) throw new Error('Plugin.php 缺少版本号。');
 await stat(join(root, 'dist', 'index.html')).catch(() => { throw new Error('请先运行 pnpm build。'); });
-const files = ['Plugin.php', 'Action.php', 'README.md'];
+const files = ['Plugin.php', 'Action.php', 'README.md', 'CHANGELOG.md'];
 async function collect(directory, target = files) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     if (['.bookstore','.local','.git','node_modules','test-results'].includes(entry.name) || entry.name.startsWith('.env') && entry.name !== '.env.example') continue;
@@ -29,6 +29,7 @@ async function collect(directory, target = files) {
   }
 }
 await collect(join(root, 'dist'));
+await collect(join(root, 'docs'));
 for (const notice of ['LICENSE','THIRD_PARTY_NOTICES.md']) { try { await stat(join(root, notice)); files.push(notice); } catch {} }
 files.sort();
 
@@ -42,14 +43,14 @@ function crc32(buffer) {
   for (const byte of buffer) crc = crcTable[(crc ^ byte) & 255] ^ (crc >>> 8);
   return (crc ^ 0xffffffff) >>> 0;
 }
-async function writeZip(entries, destination) {
+async function writeZip(entries, destination, rootName = name) {
 const chunks = [];
 const records = [];
 let offset = 0;
 for (const entry of entries) {
   const data = await readFile(join(root, entry.source));
   const compressed = deflateRawSync(data, { level: 9 });
-  const filename = Buffer.from(`${name}/${entry.path}`, 'utf8');
+  const filename = Buffer.from(`${rootName}/${entry.path}`, 'utf8');
   const checksum = crc32(data);
   const local = Buffer.alloc(30);
   local.writeUInt32LE(0x04034b50, 0);
@@ -87,16 +88,29 @@ end.writeUInt32LE(offset, 16);
 await mkdir(join(root, 'releases'), { recursive: true });
 const zip = Buffer.concat([...chunks, directory, end]);
 await writeFile(destination, zip);
-console.log(`已生成 ${destination}\n${entries.length} 个文件，${(zip.length / 1024 / 1024).toFixed(2)} MB；顶层目录：${name}/。`);
+console.log(`已生成 ${destination}\n${entries.length} 个文件，${(zip.length / 1024 / 1024).toFixed(2)} MB；顶层目录：${rootName}/。`);
 }
 const pluginFiles=files.filter(file=>!file.startsWith('dist/api/')&&!file.startsWith('dist/admin/'));
 await writeZip(pluginFiles.map(file=>({source:file,path:file})),join(root,'releases',`${name}-${version}.zip`));
 const standalone=files.filter(file=>file.startsWith('dist/')).map(file=>({source:file,path:file.slice(5)}));
 standalone.push({source:'README.md',path:'README.md'});
+standalone.push({source:'CHANGELOG.md',path:'CHANGELOG.md'});
+standalone.push(...files.filter(file=>file.startsWith('docs/')).map(file=>({source:file,path:file})));
 for(const notice of ['LICENSE','THIRD_PARTY_NOTICES.md'])if(files.includes(notice))standalone.push({source:notice,path:notice});
 await writeZip(standalone,join(root,'releases',`${name}-standalone-${version}.zip`));
-const sourceFiles=['.gitignore','.env.example','package.json','pnpm-lock.yaml','pnpm-workspace.yaml','vite.config.js','index.html','Plugin.php','Action.php','README.md','启动书店.cmd'];
-for(const dir of ['src','public','scripts'])await collect(join(root,dir),sourceFiles);
+const sourceFiles=['.gitignore','.env.example','package.json','pnpm-lock.yaml','pnpm-workspace.yaml','vite.config.js','index.html','Plugin.php','Action.php','README.md','CHANGELOG.md','启动书店.cmd'];
+for(const dir of ['src','public','scripts','docs','integrations'])await collect(join(root,dir),sourceFiles);
 for(const notice of ['LICENSE','THIRD_PARTY_NOTICES.md'])if(files.includes(notice))sourceFiles.push(notice);
 sourceFiles.sort();
 await writeZip(sourceFiles.map(file=>({source:file,path:file})),join(root,'releases',`${name}-source-${version}.zip`));
+
+const bridgeName='BookstoreGallery',bridgeDirectory=join(root,'integrations',bridgeName);
+const bridgePlugin=await readFile(join(bridgeDirectory,'Plugin.php'),'utf8');
+const bridgeAction=await readFile(join(bridgeDirectory,'Action.php'),'utf8');
+if(basename(await realpath(bridgeDirectory))!==bridgeName || !/@package\s+BookstoreGallery\b/.test(bridgePlugin)
+  || !bridgePlugin.includes('namespace TypechoPlugin\\BookstoreGallery;') || !bridgeAction.includes('namespace TypechoPlugin\\BookstoreGallery;')
+  || !/@author\s+LLLimit\b/.test(bridgePlugin) || !/@link\s+https:\/\/github\.com\/LLLimit\b/.test(bridgePlugin))throw new Error('相册桥接插件名称或署名不一致。');
+const bridgeVersion=bridgePlugin.match(/@version\s+([\d.]+)/)?.[1];
+if(!bridgeVersion)throw new Error('相册桥接插件缺少版本号。');
+const bridgeFiles=[];await collect(bridgeDirectory,bridgeFiles);
+await writeZip(bridgeFiles.map(file=>({source:file,path:file.slice(('integrations/'+bridgeName+'/').length)})),join(root,'releases',`${bridgeName}-${bridgeVersion}.zip`),bridgeName);

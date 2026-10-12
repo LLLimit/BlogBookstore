@@ -1,11 +1,12 @@
 import * as THREE from 'three';
+import {animeMaterial} from './anime-material.js';
 
 export function addShopDetails(scene,h){
   const {box,cylinder,bar,material,texture,obstacle,point,emissives,metal,trim,ivory,oak}=h;
   const ink=material('#23333d'),white=material('#ecefe9'),orange=material('#ce7945'),teal=material('#278779');
   const prints=new Map();
   function panel(w,height,x,y,z,draw,parent=scene,key){
-    let m=key&&prints.get(key);if(!m){const tex=texture(512,Math.max(96,Math.round(512*height/w)),draw);m=new THREE.MeshStandardMaterial({map:tex,roughness:.62,alphaTest:.1,emissive:'#ffffff',emissiveMap:tex,emissiveIntensity:.12});m.userData.lightKind='sign';emissives.push(m);if(key)prints.set(key,m);}
+    let m=key&&prints.get(key);if(!m){const tex=texture(512,Math.max(96,Math.round(512*height/w)),draw);m=animeMaterial('#ffffff',{map:tex,alphaTest:.1,emissive:'#ffffff',emissiveMap:tex,emissiveIntensity:.12});m.userData.lightKind='sign';emissives.push(m);if(key)prints.set(key,m);}
     const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,height),m);mesh.position.set(x,y,z);parent.add(mesh);return mesh;
   }
   const colors=['#ce6555','#449887','#e2b556','#658bac','#937799','#dd995d','#567752','#486a81'];
@@ -50,9 +51,20 @@ export function addShopDetails(scene,h){
   }
   box(2.36,.025,.15,-.3,.19,4.18,metal);box(1.73,.018,.78,-.3,.192,4.61,material('#355d50'));
   for(let n=0;n<14;n++)box(.06,.003,.66,-1.06+n*.118,.203,4.61,material('#517266'));
-  // Continuous multi-colour fascia and canopy. Lighting stays inside the shop.
+  // Continuous multi-colour fascia and canopy, with recessed soffit downlights.
   box(13.1,.085,.075,-.35,3.91,4.63,teal);box(13.1,.075,.077,-.35,3.21,4.63,orange);
   box(13.45,.11,.98,-.35,3.15,4.5,trim);box(13.45,.065,1.02,-.35,3.08,4.5,orange);
+  const downlight=material('#ffe9c9',{emissive:'#ffe4b6',emissiveIntensity:.7});
+  downlight.userData.lightKind='downlight';if(!emissives.includes(downlight))emissives.push(downlight);
+  for(const x of [-5.55,-2.95,-.35,2.25,4.85]){
+    // The cup is buried in the canopy; only the flush trim and frosted face are visible.
+    cylinder(.126,.026,x,3.049,4.58,ink);
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(.116,.009,6,24),material('#ddd9c9'));
+    rim.rotation.x=Math.PI/2;rim.position.set(x,3.037,4.58);rim.receiveShadow=true;scene.add(rim);
+    const face=cylinder(.09,.006,x,3.031,4.58,downlight);face.castShadow=false;
+    const light=point('#ffe5bf',9,4.8,x,3.019,4.58,{angle:Math.PI*.30,penumbra:.95});
+    light.name='canopy-downlight';
+  }
   // A joined sorting station: different openings, coloured headers, icons and removable doors.
   box(2.02,.07,.77,-8.18,.24,4.28,oak);box(2.02,.09,.77,-8.18,1.17,4.28,oak);
   const binKinds=[['可燃垃圾','BURNABLE','#b85645'],['瓶罐回收','BOTTLES / CANS','#3b758a'],['纸类回收','PAPER','#5c8054']];
@@ -87,8 +99,9 @@ export function addShopDetails(scene,h){
   box(.11,.17,.055,.87,2.53,4.24,ink);box(.045,.045,.06,.87,2.53,4.27,teal);
   box(.39,.43,.16,-6.82,.91,2.21,metal);box(.015,1.2,.035,-6.96,1.61,2.21,ivory);bar([-6.95,2.21,2.21],[-6.95,3.6,2.21],.023,ivory);
   box(.12,3.51,.13,-6.91,1.88,-3.85,material('#849291'));box(.31,.11,.3,-6.9,.25,-3.85,metal);
-  // A folding caution sign at the far-right storefront corner.
-  const warning=panel(.48,.66,5.55,.55,4.61,(ctx,w,height)=>{ctx.fillStyle='#edd348';ctx.fillRect(0,0,w,height);ctx.fillStyle='#273539';ctx.beginPath();ctx.moveTo(w/2,90);ctx.lineTo(w-55,370);ctx.lineTo(55,370);ctx.closePath();ctx.fill();ctx.fillStyle='#efd94c';ctx.font='bold 195px sans-serif';ctx.textAlign='center';ctx.fillText('!',w/2,322);ctx.fillStyle='#293536';ctx.font='bold 62px "Microsoft YaHei"';ctx.fillText('小心防滑',w/2,503);ctx.font='40px sans-serif';ctx.fillText('CAUTION',w/2,591);ctx.fillText('WET FLOOR',w/2,663);});warning.rotation.x=-.14;
-  for(const x of [5.28,5.82]){bar([x,.16,4.74],[x,.94,4.56],.024,material('#d3b938'));bar([x,.94,4.56],[x,.16,4.25],.024,material('#d3b938'));}obstacle(5.55,4.61,.54,.48);
+  // Beside the doorway; rotate the entire folding frame clockwise as seen from above.
+  const warningGroup=new THREE.Group();warningGroup.position.set(1.3,0,4.63);warningGroup.rotation.y=-Math.PI/6;scene.add(warningGroup);
+  const warning=panel(.48,.66,0,.55,0,(ctx,w,height)=>{ctx.fillStyle='#edd348';ctx.fillRect(0,0,w,height);ctx.fillStyle='#273539';ctx.beginPath();ctx.moveTo(w/2,90);ctx.lineTo(w-55,370);ctx.lineTo(55,370);ctx.closePath();ctx.fill();ctx.fillStyle='#efd94c';ctx.font='bold 195px sans-serif';ctx.textAlign='center';ctx.fillText('!',w/2,322);ctx.fillStyle='#293536';ctx.font='bold 62px "Microsoft YaHei"';ctx.fillText('小心防滑',w/2,503);ctx.font='40px sans-serif';ctx.fillText('CAUTION',w/2,591);ctx.fillText('WET FLOOR',w/2,663);},warningGroup);warning.rotation.x=-.14;
+  for(const x of [-.27,.27]){bar([x,.16,.13],[x,.94,-.05],.024,material('#d3b938'),warningGroup);bar([x,.94,-.05],[x,.16,-.36],.024,material('#d3b938'),warningGroup);}obstacle(1.3,4.63,.72,.72);
   function concrete(){return material('#8b999d');}
 }

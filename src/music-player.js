@@ -5,7 +5,7 @@ const stamp=t=>{t=Number.isFinite(t)?Math.max(0,t):0;return `${Math.floor(t/60)}
 export function initMusic(config,toast){
   const $=id=>document.getElementById(id),audio=new Audio(),buffers=new Map(),urls=[];
   const playlists=[{id:'builtin',name:'书店原创',tracks:originals}];
-  for(const item of Array.isArray(config.musicPlaylists)?config.musicPlaylists:[])if(item?.id&&item.id!=='builtin'&&item.id!=='local'&&!playlists.some(p=>p.id===item.id))playlists.push({...item,tracks:item.type==='tracks'?normalizeTracks(item.tracks):undefined});
+  for(const item of Array.isArray(config.musicPlaylists)?config.musicPlaylists:[])if(item?.id&&(!Object.hasOwn(item,'enabled')||[true,1,'1'].includes(item.enabled))&&item.id!=='builtin'&&item.id!=='local'&&!playlists.some(p=>p.id===item.id))playlists.push({...item,tracks:item.type==='tracks'?normalizeTracks(item.tracks):undefined});
   if(playlists.length===1&&Array.isArray(config.music)&&config.music.length)playlists.push({id:'custom',name:'自定义音乐',tracks:normalizeTracks(config.music)});
   let tracks=originals,playlistId='builtin',index=0,playing=false,pending=false,loading=false,context,gain,source,offset=0,startedAt=0,buffer,request=0,loadRequest=0,loop=true;
   audio.preload='metadata';
@@ -70,7 +70,7 @@ export function initMusic(config,toast){
   audio.addEventListener('error',()=>{if((playing||pending)&&tracks[index]?.url===audio.src){pause();toast('音频地址无法播放，可能已失效或受到平台限制，请选择其他歌曲。');}});
   let volume=.55;try{const saved=localStorage.getItem('bookstore:music-volume');if(saved!==null&&Number.isFinite(Number(saved)))volume=Math.max(0,Math.min(1,Number(saved)));}catch{}
   audio.volume=volume;$('music-volume').value=Math.round(volume*100);$('music-volume-label').textContent=Math.round(volume*100)+'%';rebuild();update();
-  let selected=config.defaultMusicPlaylist||'builtin';try{const saved=localStorage.getItem('bookstore:music-playlist');if(playlists.some(p=>p.id===saved))selected=saved;}catch{}
+  let selected=playlists.some(p=>p.id===config.defaultMusicPlaylist)?config.defaultMusicPlaylist:'builtin';try{const saved=localStorage.getItem('bookstore:music-playlist');if(playlists.some(p=>p.id===saved))selected=saved;}catch{}
   if(selected!=='builtin'){$('music-playlist').value=selected;selectPlaylist(selected);}
   const timer=setInterval(update,500);window.addEventListener('pagehide',()=>{loadRequest++;pause();clearInterval(timer);urls.forEach(URL.revokeObjectURL);context?.close();},{once:true});
   return {toggle,pause,get playing(){return playing;},get pending(){return pending;},get currentTime(){return position();},get duration(){return tracks[index]?.url?audio.duration:buffer?.duration;},get track(){return tracks[index];},get playlist(){return playlistId;}};
