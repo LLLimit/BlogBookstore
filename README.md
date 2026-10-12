@@ -29,9 +29,9 @@
 
 BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书店，不限定博客系统、作者或域名。访客可以调整昼夜、天气和音乐，从书架取下文章阅读；站长通过独立 PHP 后台管理订阅和场景。
 
-## 1.8.0 更新
+## 1.8.1 更新
 
-旅游册增加章节与逐张排版，文章阅读也可以翻书。完整记录见 [CHANGELOG](CHANGELOG.md)。
+本次修复翻页分片接缝，增加末页回弹抖动，底部「保存设置」同时保存旅游册，并保留连接失败时的输入。旅游册章节与文章翻页继续沿用。完整记录见 [CHANGELOG](CHANGELOG.md)。
 
 - **TRAVEL NOTES 旅游册**：白色杂志式界面与飞机 Logo，标题 Places worth keeping.；后台选定照片封面，封面居中，翻开后平滑展开为居中的双页书。
 - **章节与排序**：后台创建 HONG KONG 等章节，批量归类、调整照片与章节顺序，一键整理单页配对，减少没有内容的空白对页。
@@ -42,7 +42,7 @@ BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书
 - **家具虚影修复**：室内取消过重的屏幕空间环境遮蔽颜色叠加，保留法线描边和实际灯光阴影，减轻桌椅与沙发周围错位黑影。
 - **保留已有功能与修复**：Smart-Gallery / JSON 接入、每日本地缓存、提前加载、后台相册选择、歌单与配色；包含此前 CSP、PHP 7.4 兼容与中文图片路径修复。
 
-每日下载、旅游册编辑和相册管理属于独立 PHP 版；纯静态和 Typecho 插件模式通过 JSON 读取旅游册。详见 [旅游册设置](docs/photo-album.md)、[文章阅读](docs/article-book.md)、[配色与歌单](docs/appearance-and-playlists.md)和[材质与灯光](docs/stylized-rendering.md)。
+每日下载、旅游册编辑和相册管理属于独立 PHP 版；纯静态和 Typecho 插件模式通过 JSON 读取旅游册。详见 [旅游册设置](docs/photo-album.md)、[文章阅读](docs/article-book.md)、[保存排查](docs/admin-save.md)、[配色与歌单](docs/appearance-and-playlists.md)和[材质与灯光](docs/stylized-rendering.md)。
 
 ## 在线演示
 
@@ -91,9 +91,9 @@ BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书
 
 | 文件 | 用途 |
 | --- | --- |
-| BlogBookstore-standalone-1.8.0.zip | 独立部署，包含 PHP 设置后台与相册缓存接口 |
-| BlogBookstore-source-1.8.0.zip | 通用源码，包含文档和可选相册桥接插件源码 |
-| BlogBookstore-1.8.0.zip | 可选 Typecho 插件，直接读取本站文章 |
+| BlogBookstore-standalone-1.8.1.zip | 独立部署，包含 PHP 设置后台与相册缓存接口 |
+| BlogBookstore-source-1.8.1.zip | 通用源码，包含文档和可选相册桥接插件源码 |
+| BlogBookstore-1.8.1.zip | 可选 Typecho 插件，直接读取本站文章 |
 | BookstoreGallery-1.0.0.zip | 可选相册桥接插件，把 SmartGallery 公开相册提供为 JSON；读取相册页面时无需安装 |
 
 通用发布包不携带个人订阅配置、照片、音乐、密码、缓存或本地运行环境。书店 ZIP 的顶层目录为 BlogBookstore；相册桥接插件 ZIP 的顶层目录为 BookstoreGallery。
@@ -102,7 +102,7 @@ BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书
 
 备份网站，将独立包 `BlogBookstore/` 内的内容覆盖到网站根目录，保留原来的 `.bookstore/`、自定义音乐和图片。无需重新安装后台，已有设置优先于包内默认配置。登录 `/admin` 保存相册来源及展示相册，再检查下载更新。需要无人访问时也每天更新，按 [画册说明](docs/photo-album.md)添加服务器计划任务。
 
-覆盖完整 1.8.0 即包含此前相册修复与本次功能；不要再用旧版相册小补丁覆盖新版文件。升级后进入 `/admin` →「展示的旅游册」→「编辑旅游册」设置封面、章节、照片顺序与版式，点击「保存这本旅游册」。旧照片日期和故事自动沿用。
+覆盖完整 1.8.1 即包含此前相册修复与本次功能；不要再用旧版相册小补丁覆盖新版文件。升级后进入 `/admin` →「展示的旅游册」→「编辑旅游册」设置封面、章节、照片顺序与版式，点击「保存这本旅游册」。旧照片日期和故事自动沿用。
 
 ## 快速开始：独立部署
 

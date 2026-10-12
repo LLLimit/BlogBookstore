@@ -35,7 +35,7 @@ function bb_gallery_save_note(array $settings,string $key,array $note): void {
     if(!preg_match('/^[a-f0-9]{64}$/D',$key))throw new InvalidArgumentException('照片编号无效。');
     $found=false;foreach(bb_gallery($settings)['albums'] as $album)foreach($album['photos'] as $photo)if($photo['photoKey']===$key)$found=true;
     if(!$found)throw new InvalidArgumentException('这张照片尚未同步或已不在展示画册中，请重新读取照片。');
-    $name=bb_gallery_notes_name($settings);$lock=bb_lock($name);
+    $name=bb_gallery_notes_name($settings);$lock=bb_lock($name,false);if(!$lock)throw new RuntimeException('另一个任务正在保存旅游册，请稍后重试。',409);
     try{$notes=bb_read($name)??[];$notes[$key]=array_merge($notes[$key]??[],$note,['updatedAt'=>time()]);bb_write($name,$notes);}
     finally{flock($lock,LOCK_UN);fclose($lock);}
 }
@@ -66,7 +66,7 @@ function bb_gallery_save_album(array $settings,array $input): void {
     if(count($chapterOrder)>60)throw new InvalidArgumentException('最多设置 60 个章节。');
     $cover=$input['coverPhotoKey']??'';if(!is_string($cover)||$cover!==''&&!isset($known[$cover]))throw new InvalidArgumentException('封面照片无效。');
     $editor=['order'=>array_keys($ordered),'chapterOrder'=>$chapterOrder,'coverPhotoKey'=>$cover,'wideLayout'=>bb_gallery_choice($input['wideLayout']??'spread-full',['spread-full','spread-contain'],'横幅默认版式')];
-    $name=bb_gallery_notes_name($settings);$lock=bb_lock($name);
+    $name=bb_gallery_notes_name($settings);$lock=bb_lock($name,false);if(!$lock)throw new RuntimeException('另一个任务正在保存旅游册，请稍后重试。',409);
     try{$notes=bb_read($name)??[];foreach($validated as $key=>$note)$notes[$key]=array_merge($notes[$key]??[],$note,['updatedAt'=>time()]);$notes['_albums'][$albumId]=$editor;bb_write($name,$notes);}
     finally{flock($lock,LOCK_UN);fclose($lock);}
 }

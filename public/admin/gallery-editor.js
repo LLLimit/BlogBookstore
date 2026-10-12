@@ -1,7 +1,8 @@
 {
  const trigger=document.getElementById('gallery-editor-load');
  if(trigger){
-  const root=document.getElementById('gallery-photo-notes'),message=document.getElementById('gallery-notes-message'),form=trigger.closest('form');
+  const root=document.getElementById('gallery-photo-notes'),message=document.getElementById('gallery-notes-message'),form=trigger.closest('form');let editors=[];
+  const activeSaves=new Set();window.BookstoreGalleryEditor={get busy(){return activeSaves.size>0;},async saveAll(){for(const save of editors)await save();}};
   const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!=null)e.textContent=text;if(cls)e.className=cls;return e;};
   const button=(text,run)=>{const b=el('button',text,'button secondary');b.type='button';b.addEventListener('click',run);return b;};
   const input=(type,value)=>{const e=el('input');e.type=type;e.value=value||'';return e;};
@@ -9,7 +10,7 @@
   const field=(label,control)=>{const l=el('label',label);l.append(control);return l;};
   const layouts=[['auto','自动（横幅双页，其他留白）'],['spread-full','铺满整本双页'],['spread-contain','双页完整留白'],['page-full','铺满单页'],['page-contain','单页完整留白']];
   const corners=[['outer','按左右页自动外侧'],['left','左下角'],['right','右下角']],sides=[['outer','按左右页自动外侧'],['left','书外左侧'],['right','书外右侧']];
-  async function request(operation,payload){const data=new FormData();data.set('csrf',form.elements.csrf.value);data.set('operation',operation);if(payload)data.set('payload',JSON.stringify(payload));let response;try{response=await fetch('./gallery-notes.php',{method:'POST',body:data,signal:AbortSignal.timeout(30000)});}catch{throw Error('旅游册接口连接失败，请刷新后台后重试。');}const text=await response.text();let result;try{result=JSON.parse(text);}catch{throw Error('旅游册接口未返回 JSON，请检查 PHP 错误日志。');}if(!response.ok||result.error)throw Error(result.error||'旅游册保存失败。');return result;}
+  async function request(operation,payload){const data=new FormData();data.set('csrf',form.elements.csrf.value);data.set('operation',operation);if(payload)data.set('payload',JSON.stringify(payload));let response;try{response=await fetch('./gallery-notes.php',{method:'POST',body:data,signal:AbortSignal.timeout(20000)});}catch(error){throw Error(error.name==='TimeoutError'?'旅游册保存超时。编辑内容仍在页面中，请查看服务器日志后重试。':'旅游册连接中断。编辑内容仍在页面中，请重试保存，不要直接刷新页面。');}const text=await response.text();let result;try{result=JSON.parse(text);}catch{throw Error(`旅游册接口返回 HTTP ${response.status}，响应不是 JSON，请检查 PHP / nginx 错误日志。`);}if(!response.ok||result.error)throw Error(result.error||`旅游册接口返回 HTTP ${response.status}`);return result;}
   function renderAlbum(album){
    album.editor=album.editor||{};const selected=new Set(),visible=new Map();let page=0;const size=8;
    const box=el('details',null,'travel-editor');box.open=true;box.append(el('summary',`${album.title} · ${album.photos.length} 张照片`));
@@ -43,8 +44,9 @@
     });
     paging.replaceChildren(button('← 上一组',()=>{collect();page=Math.max(0,page-1);render();}),pageInfo,button('下一组 →',()=>{collect();page=Math.min(Math.ceil(album.photos.length/size)-1,page+1);render();}));pageInfo.textContent=`${page*size+1}–${Math.min(album.photos.length,(page+1)*size)} / ${album.photos.length}`;
    }
-   const save=button('保存这本旅游册',async()=>{collect();save.disabled=true;feedback.textContent='正在保存章节与排版…';try{await request('album-save',{albumId:String(album.id),coverPhotoKey:cover.value,chapterOrder:chapters.value.split('\n').map(v=>v.trim()).filter(Boolean),wideLayout:wide.value,order:album.photos.map(p=>p.photoKey),photos:album.photos.map(p=>({photoKey:p.photoKey,chapter:p.chapter||'',layout:p.layout||'auto',takenAt:p.takenAt||'',pageText:p.pageText||'',leftPageText:p.leftPageText||'',rightPageText:p.rightPageText||'',textCorner:p.textCorner||'outer',storySide:p.storySide||'outer',story:p.story||''}))});feedback.textContent='已保存封面、章节、排序、版式和故事，刷新旅游册即可看到。';}catch(error){feedback.textContent=error.message;}finally{save.disabled=false;}});box.append(save,feedback);render();return box;
+   let saving=null;async function saveAlbum(){if(saving)return saving;collect();const previous=save.disabled;save.disabled=true;activeSaves.add(saveAlbum);feedback.textContent='正在保存章节与排版…';saving=(async()=>{try{await request('album-save',{albumId:String(album.id),coverPhotoKey:cover.value,chapterOrder:chapters.value.split('\n').map(v=>v.trim()).filter(Boolean),wideLayout:wide.value,order:album.photos.map(p=>p.photoKey),photos:album.photos.map(p=>({photoKey:p.photoKey,chapter:p.chapter||'',layout:p.layout||'auto',takenAt:p.takenAt||'',pageText:p.pageText||'',leftPageText:p.leftPageText||'',rightPageText:p.rightPageText||'',textCorner:p.textCorner||'outer',storySide:p.storySide||'outer',story:p.story||''}))});feedback.textContent='已保存封面、章节、排序、版式和故事，刷新旅游册即可看到。';}catch(error){feedback.textContent=error.message;throw error;}finally{save.disabled=previous;saving=null;activeSaves.delete(saveAlbum);}})();return saving;}
+   const save=button('保存这本旅游册',()=>saveAlbum().catch(()=>{}));editors.push(saveAlbum);box.append(save,feedback);render();return box;
   }
-  trigger.addEventListener('click',async()=>{trigger.disabled=true;message.textContent='正在读取已同步的旅游册…';try{const data=await request('photos');root.replaceChildren(...data.albums.map(renderAlbum));message.textContent=data.albums.length?'各本旅游册独立保存；可以先批量归入章节，再调整排序与版式。':'暂无已同步照片，请先检查并下载更新。';}catch(error){message.textContent=error.message;}finally{trigger.disabled=false;}});
+  trigger.addEventListener('click',async()=>{trigger.disabled=true;message.textContent='正在读取已同步的旅游册…';try{const data=await request('photos');editors=[];root.replaceChildren(...data.albums.map(renderAlbum));message.textContent=data.albums.length?'各本旅游册可独立保存，底部「保存设置」也会一并保存已打开的旅游册。':'暂无已同步照片，请先检查并下载更新。';}catch(error){message.textContent=error.message;}finally{trigger.disabled=false;}});
  }
 }

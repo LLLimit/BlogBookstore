@@ -9,4 +9,4 @@
 <p class="hint">自动检查间隔为 24 小时。访客打开网站时会补做过期检查；无人访问时也要每天更新，请在服务器计划任务中每天运行 <code>php /网站根目录/api/gallery-cron.php</code>。大量照片可每 5 分钟运行此命令，它会续传未完成任务，24 小时内不重复检查相册。</p>
 <p class="hint">原图保留本地；PHP GD 可自动生成最长边 1600px 的 WebP 展示图，降低翻页加载量。同步失败保留已下载照片，可手动重试。</p>
 <h3>旅游册 · 章节与排版</h3><p class="hint">先同步照片，再设置封面、章节、顺序及每张照片的版式。横幅默认铺满双页，竖图可铺满单页或留白。日期与文案显示在照片页角，故事浮动在书外。这里独立保存，不会被每日同步覆盖。</p><button type="button" class="button secondary" id="gallery-editor-load">编辑旅游册</button><p id="gallery-notes-message" class="hint" role="status"></p><div id="gallery-photo-notes"></div>
-</section><script src="./gallery-settings.js?v=1.8.0" defer></script><script src="./gallery-editor.js?v=1.8.0" defer></script>
+</section><script src="./gallery-settings.js?v=1.8.1" defer></script><script src="./gallery-editor.js?v=1.8.1" defer></script>
