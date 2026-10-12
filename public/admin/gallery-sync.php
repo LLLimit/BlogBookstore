@@ -9,6 +9,9 @@ try{
  elseif($action==='start')$result=bb_gallery_sync($settings,true,1);
  elseif($action==='step')$result=bb_gallery_sync($settings,false,2);
  elseif($action==='status'){bb_gallery_import_seed($settings);$result=bb_gallery_status($settings);}
+ elseif($action==='optimize-start')$result=bb_gallery_optimize($settings,true,1);
+ elseif($action==='optimize-step')$result=bb_gallery_optimize($settings,false,1);
+ elseif($action==='optimize-status')$result=bb_gallery_optimizer_status($settings);
  else throw new RuntimeException('无效操作。');
  echo json_encode($result,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);
 }catch(Throwable $e){if(http_response_code()<400)http_response_code(400);echo json_encode(['error'=>$e->getMessage()],JSON_UNESCAPED_UNICODE);}

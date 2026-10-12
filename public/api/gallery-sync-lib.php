@@ -41,24 +41,13 @@ function bb_gallery_store(array $image, int $maximumMB): array {
         if($bytes+strlen($image['body'])>$maximumMB*1048576)throw new RuntimeException('画册本地存储已到上限，请增加后台存储限额。');
         $tmp=$dir.'/tmp-'.bin2hex(random_bytes(8));if(file_put_contents($tmp,$image['body'],LOCK_EX)===false){@unlink($tmp);throw new RuntimeException('图片无法写入。');}if(!rename($tmp,$path)){@unlink($tmp);throw new RuntimeException('图片无法保存。');}
     }
-    $preview=$file;
-    // Keep original files; make a lightweight display copy when GD is available.
-    $limit=ini_get('memory_limit');$memory=(int)$limit;if(stripos($limit,'g')!==false)$memory*=1024;if(stripos($limit,'m')!==false||stripos($limit,'g')!==false)$memory*=1048576;
-    $needed=$image['width']*$image['height']*8+33554432;
-    if(function_exists('imagecreatefromstring')&&function_exists('imagewebp')&&$image['ext']!=='gif'&&($memory<0||memory_get_usage(true)+$needed<$memory)) {
-        $preview=$hash.'-preview.webp';$destination=$dir.'/'.$preview;
-        if(!is_file($destination)) {
-            $source=@imagecreatefromstring($image['body']);
-            if($source){$scale=min(1,1600/max($image['width'],$image['height']));$target=imagecreatetruecolor(max(1,(int)round($image['width']*$scale)),max(1,(int)round($image['height']*$scale)));imagealphablending($target,false);imagesavealpha($target,true);imagecopyresampled($target,$source,0,0,0,0,imagesx($target),imagesy($target),$image['width'],$image['height']);$tmp=$destination.'.tmp';$ok=imagewebp($target,$tmp,84);imagedestroy($source);imagedestroy($target);$bytes=0;foreach(glob($dir.'/*')?:[] as $existing)$bytes+=is_file($existing)?filesize($existing):0;if(!$ok||$bytes>$maximumMB*1048576||!rename($tmp,$destination))@unlink($tmp);}
-        }
-        if(!is_file($destination))$preview=$file;
-    }
-    return ['file'=>$file,'preview'=>$preview,'etag'=>$image['etag'],'modified'=>$image['modified'],'width'=>$image['width'],'height'=>$image['height'],'bytes'=>filesize($path),'downloadedAt'=>time()];
+    // Conversion is a separate resumable job; never delay a visitor's image request.
+    return ['file'=>$file,'preview'=>$file,'etag'=>$image['etag'],'modified'=>$image['modified'],'width'=>$image['width'],'height'=>$image['height'],'bytes'=>filesize($path),'downloadedAt'=>time()];
 }
 function bb_gallery_status(array $settings): array {
     $key=bb_gallery_key($settings);$job=bb_read('gallery-job-'.$key);$data=bb_read('gallery-local-'.$key);
     $pendingPhotos=$job?max(0,count($job['queue'])-$job['cursor']):0;$pendingAlbums=count($job['metadataPending']??[]);
-    return ['albums'=>array_map(fn($a)=>['id'=>$a['id'],'title'=>$a['title'],'photos'=>count($a['photos'])],$data['albums']??[]),'checkedAt'=>$job['checkedAt']??0,'syncedAt'=>$data['syncedAt']??0,'pending'=>$pendingPhotos+$pendingAlbums,'pendingPhotos'=>$pendingPhotos,'pendingAlbums'=>$pendingAlbums,'total'=>$job?count($job['queue']):0,'done'=>$job['cursor']??0,'failures'=>count($job['errors']??[]),'errors'=>array_slice($job['errors']??[],0,5),'error'=>$job['error']??'','optimized'=>function_exists('imagewebp')];
+    return ['albums'=>array_map(fn($a)=>['id'=>$a['id'],'title'=>$a['title'],'photos'=>count($a['photos'])],$data['albums']??[]),'checkedAt'=>$job['checkedAt']??0,'syncedAt'=>$data['syncedAt']??0,'pending'=>$pendingPhotos+$pendingAlbums,'pendingPhotos'=>$pendingPhotos,'pendingAlbums'=>$pendingAlbums,'total'=>$job?count($job['queue']):0,'done'=>$job['cursor']??0,'failures'=>count($job['errors']??[]),'errors'=>array_slice($job['errors']??[],0,5),'error'=>$job['error']??'','optimized'=>class_exists('Imagick')||function_exists('imagecreatetruecolor')];
 }
 function bb_gallery_publish(string $key,array $job): void {
     $albums=[];$previous=bb_read('gallery-local-'.$key);$failed=array_column($job['errors']??[],'url');
@@ -108,10 +97,11 @@ function bb_gallery_sync(array $settings,bool $force=false,int $batch=2): array 
 function bb_gallery(array $settings): array {
     if(empty($settings['galleryUrl']))return ['albums'=>[]];
     bb_gallery_import_seed($settings);
-    $key=bb_gallery_key($settings);$data=bb_gallery_with_notes($settings,bb_read('gallery-local-'.$key)??['albums'=>[]]);$status=bb_gallery_status($settings);
+    $key=bb_gallery_key($settings);$data=bb_gallery_with_notes($settings,bb_gallery_variant_urls(bb_read('gallery-local-'.$key)??['albums'=>[]]));$status=bb_gallery_status($settings);
     return array_merge($data,['syncPending'=>$status['pending']>0||!$status['checkedAt']||time()-$status['checkedAt']>=86400,'syncStatus'=>['checkedAt'=>$status['checkedAt'],'pending'=>$status['pending'],'failures'=>$status['failures'],'error'=>$status['error']]]);
 }
 require_once __DIR__.'/gallery-notes-lib.php';
+require_once __DIR__.'/gallery-variants-lib.php';
 function bb_gallery_import_seed(array $settings): void {
     $key=bb_gallery_key($settings);$existing=bb_read('gallery-local-'.$key);$job=bb_read('gallery-job-'.$key);
     // An older failed download can leave an empty manifest. It must not block
