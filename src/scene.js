@@ -29,9 +29,13 @@ export function createBookstore(container,onRead,onAim,onPause,onStart){
   const target=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{type:THREE.HalfFloatType});target.samples=Math.min(4,renderer.capabilities.maxSamples);
   const composer=new EffectComposer(renderer,target);composer.addPass(new RenderPass(scene,camera));
   const ao=new SSAOPass(scene,camera,innerWidth,innerHeight,16);ao.kernelRadius=.55;ao.minDistance=.001;ao.maxDistance=.018;
+  // SSAO's screen-space blur can duplicate thin furniture silhouettes indoors.
+  // Keep its normal buffer for ink edges, but use real light shadows in the room.
+  ao.copyMaterial.uniforms.contactStrength={value:.45};
+  ao.copyMaterial.fragmentShader=ao.copyMaterial.fragmentShader.replace('uniform float opacity;','uniform float opacity; uniform float contactStrength;').replace('gl_FragColor = opacity * texel;','gl_FragColor = vec4(mix(vec3(1.0),texel.rgb,contactStrength),texel.a);');
   const aoRender=ao.render.bind(ao);
   // Contact depth uses the building surfaces; weather overlays have custom masks and heights.
-  ao.render=(...args)=>{ao.ssaoMaterial.uniforms.cameraProjectionMatrix.value.copy(camera.projectionMatrix);ao.ssaoMaterial.uniforms.cameraInverseProjectionMatrix.value.copy(camera.projectionMatrixInverse);const hidden=[];scene.traverse(o=>{if(o.visible&&(o.userData.sky||o.userData.snowCover||(o.isMesh&&(o.isReflector||o.material.transparent)))){hidden.push(o);o.visible=false;}});try{aoRender(...args);}finally{hidden.forEach(o=>o.visible=true);}};
+  ao.render=(...args)=>{const inside=camera.position.x>-6.8&&camera.position.x<6.1&&camera.position.z>-4.5&&camera.position.z<4.35&&camera.position.y<7.7;ao.copyMaterial.uniforms.contactStrength.value=inside?0:.45;ao.kernelRadius=inside ? .12 : .32;ao.maxDistance=inside ? .002 : .009;ao.ssaoMaterial.uniforms.cameraProjectionMatrix.value.copy(camera.projectionMatrix);ao.ssaoMaterial.uniforms.cameraInverseProjectionMatrix.value.copy(camera.projectionMatrixInverse);const hidden=[];scene.traverse(o=>{if(o.visible&&(o.userData.sky||o.userData.snowCover||(o.isMesh&&(o.isReflector||o.material.transparent)))){hidden.push(o);o.visible=false;}});try{aoRender(...args);}finally{hidden.forEach(o=>o.visible=true);}};
   // Contact shadows use the full drawing resolution so thin book spines keep clean edges.
   composer.addPass(ao);
   // Fine ink accents use geometry normals, so printed text and wood grain stay clean.

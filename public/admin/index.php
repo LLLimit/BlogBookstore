@@ -91,7 +91,7 @@ $settings = $settings ?? bb_defaults();
 $csrf = $_SESSION['csrf'] ?? '';
 $weatherNames = ['clear'=>'晴朗','cloudy'=>'多云','rain'=>'小雨','storm'=>'暴雨','snow'=>'飘雪'];
 ?><!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>书店设置 · BlogBookstore</title><link rel="icon" href="../favicon.svg"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./appearance-settings.css"></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>书店设置 · BlogBookstore</title><link rel="icon" href="../favicon.svg"><link rel="stylesheet" href="./style.css?v=1.8.0"><link rel="stylesheet" href="./appearance-settings.css"></head>
 <body><div class="shell"><header class="topbar"><a class="identity" href="../"><span class="logo">B</span><span><strong>BlogBookstore</strong><small>把你的博客，放进一间书店。</small></span></a><div class="top-actions"><a class="button subtle" href="../" target="_blank" rel="noopener">打开书店 ↗</a><?php if ($authenticated): ?><form method="post"><input type="hidden" name="csrf" value="<?=h($csrf)?>"><button class="button subtle" name="action" value="logout">退出登录</button></form><?php endif ?></div></header>
 <?php if ($error): ?><div class="notice error" role="alert"><?=h($error)?></div><?php endif ?>
 <?php if ($message): ?><div class="notice success" role="status"><?=h($message)?></div><?php endif ?>

@@ -181,7 +181,7 @@ export function createDistrict(scene) {
   box(.35,.012,.43,2.40,1.078,1.40,material('#517c78'));
   const albumCover=box(.35,.014,.43,2.40,1.125,1.40,material('#517c78'));
   box(.23,.005,.25,2.40,1.137,1.40,material('#d2b079'));
-  for(const part of [albumCover,albumPages]){part.userData.interaction={kind:'album',title:'照片画册 · 翻阅博客相册'};lounge.interactionTargets.push(part);}
+  for(const part of [albumCover,albumPages]){part.userData.interaction={kind:'album',title:'旅游册 · TRAVEL NOTES'};lounge.interactionTargets.push(part);}
   const wetShader={...Reflector.ReflectorShader,uniforms:{...Reflector.ReflectorShader.uniforms,uTime:{value:0}}};
   wetShader.vertexShader=wetShader.vertexShader.replace('varying vec4 vUv;','varying vec4 vUv; varying vec2 vSurfaceUv;').replace('vUv = textureMatrix','vSurfaceUv = uv; vUv = textureMatrix');
   wetShader.fragmentShader=wetShader.fragmentShader.replace('varying vec4 vUv;','varying vec4 vUv; varying vec2 vSurfaceUv; uniform float uTime;').replace('vec4 base = texture2DProj( tDiffuse, vUv );','vec2 p=vSurfaceUv*vec2(25.,20.); float puddle=smoothstep(-.4,.65,sin(p.x*.83+sin(p.y*.9))*cos(p.y*.66)+sin(p.x*1.77+p.y*1.3)*.22); vec4 reflectedUv=vUv; reflectedUv.xy+=vec2(sin(p.y*34.+uTime*1.5),cos(p.x*29.+uTime))*reflectedUv.w*.0008; vec4 base = texture2DProj(tDiffuse,reflectedUv);').replace('vec4( blendOverlay( base.rgb, color ), 1.0 )','vec4(mix(vec3(.025,.032,.042),blendOverlay(base.rgb,color),.2+.8*puddle),1.0)');

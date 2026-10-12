@@ -12,21 +12,5 @@ if(galleryRoot){
  document.getElementById('gallery-sync-start').addEventListener('click',async e=>{if(running)return;running=true;e.target.disabled=true;try{let data=await request('start');status(data);while(data.pending&&!data.busy){data=await request('step');status(data);}if(data.busy)message.textContent+=' 另一个任务正在同步，稍后查看状态。';else if(!data.failures&&!data.error)message.textContent+=' 已完成，刷新书店即可翻阅。';}catch(error){message.textContent=error.message;}finally{running=false;e.target.disabled=false;}});
  document.getElementById('gallery-sync-status').addEventListener('click',()=>request('status').then(status).catch(e=>message.textContent=e.message));
  request('status').then(status).catch(()=>{});
- const notesMessage=document.getElementById('gallery-notes-message'),notesRoot=document.getElementById('gallery-photo-notes');
- async function noteRequest(operation,values={}){const data=new FormData();data.set('csrf',form.elements.csrf.value);data.set('operation',operation);for(const [key,value]of Object.entries(values))data.set(key,value);return post('./gallery-notes.php',data);}
- document.getElementById('gallery-notes-load').addEventListener('click',async e=>{
-  e.target.disabled=true;notesMessage.textContent='正在读取已同步的照片…';
-  try{const data=await noteRequest('photos');notesRoot.replaceChildren();let count=0;
-   for(const album of data.albums){const heading=document.createElement('h4');heading.textContent=album.title;notesRoot.append(heading);
-    for(const photo of album.photos){count++;const card=document.createElement('div');card.className='gallery-photo-note';const img=document.createElement('img');img.src=new URL(photo.url,new URL('../',location.href));img.alt=photo.caption||album.title;img.loading='lazy';
-     const fields=document.createElement('div'),title=document.createElement('strong');title.textContent=photo.caption||`照片 ${count}`;
-     const dateLabel=document.createElement('label');dateLabel.textContent='日期与时间';const date=document.createElement('input');date.type='datetime-local';date.value=photo.takenAt||'';dateLabel.append(date);
-     const storyLabel=document.createElement('label');storyLabel.textContent='照片故事';const story=document.createElement('textarea');story.rows=4;story.maxLength=2000;story.value=photo.story||'';storyLabel.append(story);
-     const save=document.createElement('button');save.type='button';save.className='button secondary';save.textContent='保存这张照片';const feedback=document.createElement('p');feedback.className='hint';feedback.setAttribute('role','status');
-     save.addEventListener('click',async()=>{save.disabled=true;try{await noteRequest('save',{photoKey:photo.photoKey,takenAt:date.value,story:story.value});feedback.textContent='已保存，刷新画册即可看到。';}catch(error){feedback.textContent=error.message;}finally{save.disabled=false;}});
-     fields.append(title,dateLabel,storyLabel,save,feedback);card.append(img,fields);notesRoot.append(card);
-    }
-   }notesMessage.textContent=count?`共 ${count} 张照片。每张照片单独保存；留空后保存可清除日期或故事。`:'暂无已同步的照片，请先检查并下载更新。';
-  }catch(error){notesMessage.textContent=error.message;}finally{e.target.disabled=false;}
- });
+
 }

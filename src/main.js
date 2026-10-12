@@ -3,7 +3,8 @@ import {applyUiAccent} from './ui-theme.js';
 import {parseFeed,cleanContent,safeUrl,getText,getFeed} from './articles.js';
 import {initMusic} from './music-player.js';
 import {products} from './products.js';
-import {initPhotoAlbum} from './photo-album.js';
+import {initPhotoAlbum} from './travel-album.js';
+import {initArticleBook} from './article-book.js';
 
 const $=id=>document.getElementById(id), coarse=matchMedia('(pointer:coarse)').matches;
 const base=import.meta.env.BASE_URL;
@@ -18,8 +19,9 @@ function toast(message){$('toast').textContent=message;$('toast').hidden=false;c
 function storageRead(key){try{return JSON.parse(localStorage.getItem(key)||'null');}catch{return null;}}
 function storageWrite(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch{/* Private browsers can still read without saving. */}}
 const progressKey=a=>'bookstore:progress:'+(a.url||config.feedUrl+':'+a.id);
+const articleBook=initArticleBook(a=>storageRead(progressKey(a)),(a,patch)=>storageWrite(progressKey(a),{...(storageRead(progressKey(a))||{}),...patch,date:Date.now()}),toast);
 function dateLabel(date){const value=new Date(date);return isNaN(value)?'博客文章':value.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'});}
-function aim(article){$('book-prompt').hidden=!article||dialogs.some(d=>d.open)||!started;$('touch-read').disabled=!article;if(article){$('book-title').textContent=article.title;$('book-prompt').querySelector('small').textContent=article.kind==='album'?'翻开照片画册':article.kind==='shop'?'和掌柜聊聊':'拿起这本书';$('touch-read').textContent=article.kind==='shop'?'逛货架':'阅读';}}
+function aim(article){$('book-prompt').hidden=!article||dialogs.some(d=>d.open)||!started;$('touch-read').disabled=!article;if(article){$('book-title').textContent=article.title;$('book-prompt').querySelector('small').textContent=article.kind==='album'?'翻开旅游册':article.kind==='shop'?'和掌柜聊聊':'拿起这本书';$('touch-read').textContent=article.kind==='shop'?'逛货架':'阅读';}}
 function pause(){game?.pause();$('crosshair').hidden=true;$('book-prompt').hidden=true;$('touch-controls').hidden=true;}
 function showPauseMenu(reason){pendingEscapeResume=false;pause();if(started&&!dialogs.some(d=>d.open)){const failed=reason?.kind==='pointer-lock';$('pause-title').textContent=failed?'无法锁定鼠标':'漫游已暂停';$('lock-notice').hidden=!failed;if(failed)$('browser-preview-address').value=location.href;$('resume').hidden=false;$('resume-btn').focus({preventScroll:true});}}
 function startWalk(){$('resume').hidden=true;$('lock-notice').hidden=true;$('crosshair').hidden=false;$('touch-controls').hidden=!coarse;}
@@ -87,7 +89,7 @@ setTime($('time-range').value);
 document.querySelectorAll('[data-weather]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-weather]').forEach(x=>{x.classList.toggle('selected',x===b);x.setAttribute('aria-pressed',String(x===b));});$('weather-label').textContent=b.textContent.trim();game?.setWeather(b.dataset.weather);}));
 $('light-range').addEventListener('input',e=>{$('light-label').textContent=Math.round(e.target.value*100)+'%';game?.setBrightness(e.target.value);});
 $('search').addEventListener('input',renderCatalog);
-$('font-size').addEventListener('click',()=>{$('reader').classList.toggle('large-type');storageWrite('bookstore:large-type',$('reader').classList.contains('large-type'));});
+$('font-size').addEventListener('click',()=>{$('reader').classList.toggle('large-type');storageWrite('bookstore:large-type',$('reader').classList.contains('large-type'));articleBook.fontChanged();});
 if(storageRead('bookstore:large-type'))$('reader').classList.add('large-type');
 function renderCatalog(){
   const q=$('search').value.trim().toLocaleLowerCase();const filtered=articles.filter(a=>[a.title,a.category,a.excerpt].join(' ').toLocaleLowerCase().includes(q));
@@ -104,10 +106,10 @@ function renderShop(){
 }
 function read(article){if(article.kind==='album'){photoAlbum?.open();return;}if(article.kind==='shop'){renderShop();showDialog($('shop-menu'));return;}current=article;if($('catalog').open)$('catalog').close();$('reader-title').textContent=article.title;$('reader-meta').textContent=article.category+' / '+dateLabel(article.date);$('reader-index').textContent=`第 ${articles.indexOf(article)+1} 本 · ${config.title}`;
   const content=$('reader-content');content.replaceChildren(cleanContent(article.content,article.url));if(!content.textContent.trim()){const p=document.createElement('p');p.textContent='RSS 尚未提供正文，请点击下方链接阅读原文。';content.append(p);}
-  const href=safeUrl(article.url,config.blogUrl);$('original').href=href||config.blogUrl;$('original').hidden=!href;showDialog($('reader'));
+  const href=safeUrl(article.url,config.blogUrl);$('original').href=href||config.blogUrl;$('original').hidden=!href;showDialog($('reader'));articleBook.open(article,content);
   requestAnimationFrame(()=>{$('reader').querySelector('.reader-scroll').scrollTop=storageRead(progressKey(article))?.top||0;});
 }
-$('reader').querySelector('.reader-scroll').addEventListener('scroll',e=>{if(current)storageWrite(progressKey(current),{top:e.target.scrollTop,date:Date.now()});},{passive:true});
+$('reader').querySelector('.reader-scroll').addEventListener('scroll',e=>{if(current&&!e.target.hidden)storageWrite(progressKey(current),{...(storageRead(progressKey(current))||{}),top:e.target.scrollTop,date:Date.now()});},{passive:true});
 let joyId=null;const joy=$('joystick');function moveJoystick(e){const r=joy.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2,len=Math.max(1,Math.hypot(dx,dy)/34);const x=dx/len,y=dy/len;joy.firstElementChild.style.transform=`translate(${x}px,${y}px)`;game?.setMove(x/34,y/34);}
 joy.addEventListener('pointerdown',e=>{e.preventDefault();joyId=e.pointerId;joy.setPointerCapture(e.pointerId);moveJoystick(e);});joy.addEventListener('pointermove',e=>{if(e.pointerId===joyId)moveJoystick(e);});
 for(const type of ['pointerup','pointercancel','lostpointercapture'])joy.addEventListener(type,()=>{joyId=null;joy.firstElementChild.style.transform='';game?.setMove(0,0);});
