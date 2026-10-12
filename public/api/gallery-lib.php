@@ -1,6 +1,27 @@
 <?php
 declare(strict_types=1);
 function bb_gallery_text(string $value, int $limit): string { preg_match_all('/./us', $value, $matches); return implode('', array_slice($matches[0] ?? [],0,$limit)); }
+function bb_gallery_image_url(string $file, string $site = ''): string {
+    $file=trim($file);
+    if($file===''||preg_match('/[\x00-\x1f\x7f]/',$file)||strpos($file,'\\')!==false)throw new InvalidArgumentException('相册图片路径无效。');
+    if(strpos($file,'//')===0){$scheme=parse_url($site,PHP_URL_SCHEME);if(!in_array($scheme,['http','https'],true))throw new InvalidArgumentException('相册来源网址无效。');$file=$scheme.':'.$file;}
+    $parts=parse_url($file);
+    if(!is_array($parts)||isset($parts['user'])||isset($parts['pass'])||isset($parts['scheme'])&&!in_array(strtolower($parts['scheme']),['http','https'],true))throw new InvalidArgumentException('相册图片网址格式无效。');
+    $absolute=isset($parts['scheme']);
+    if($absolute&&empty($parts['host']))throw new InvalidArgumentException('相册图片网址缺少域名。');
+    $path=$parts['path']??'';
+    if(!$absolute&&strpos($path,'/')!==0&&strpos($path,'usr/uploads/')!==0)$path='usr/uploads/'.$path;
+    $segments=[];
+    foreach(explode('/',$path) as $segment){
+        $decoded=rawurldecode($segment);
+        if($decoded==='.'||$decoded==='..'||preg_match('/[\x00-\x1f\x7f\\\\]/',$decoded))throw new InvalidArgumentException('相册图片路径包含无效目录。');
+        // Encode each path component, preserving slashes and existing escapes.
+        $segments[]=rawurlencode($decoded);
+    }
+    $url=($absolute?strtolower($parts['scheme']).'://'.$parts['host'].(isset($parts['port'])?':'.$parts['port']:''):'').implode('/',$segments);
+    if(isset($parts['query']))$url.='?'.preg_replace_callback('/[^\x21-\x7e]/',static function($match){return rawurlencode($match[0]);},$parts['query']);
+    return $absolute?bb_url($url,false):bb_redirect($url,bb_url($site,false));
+}
 function bb_gallery_normalize(array $data, int $maximum = 800): array {
     $albums = []; $remaining = $maximum;
     foreach (array_slice($data['albums'] ?? [], 0, 60) as $index=>$album) {
@@ -8,7 +29,8 @@ function bb_gallery_normalize(array $data, int $maximum = 800): array {
         $photos = [];
         foreach (array_slice(is_array($album['photos'] ?? null) ? $album['photos'] : [], 0, min(300,$remaining)) as $photo) {
             if (!is_array($photo)) continue;
-            try { $url = bb_url($photo['url'] ?? '', false); } catch (Throwable $e) { continue; }
+            if(!is_string($photo['url']??null))continue;
+            try { $url = bb_gallery_image_url($photo['url']); } catch (Throwable $e) { continue; }
             $photos[] = ['url'=>$url,'caption'=>bb_gallery_text((string)($photo['caption'] ?? ''),255)];
         }
         $remaining -= count($photos);
@@ -34,8 +56,13 @@ function bb_gallery_source(array $settings, bool $catalogOnly = false): array {
     return bb_gallery_page($url,$settings,$catalogOnly);
 }
 function bb_gallery_album_images(array $album): array {
-    $images=json_decode(bb_fetch_document($album['_endpoint'],2097152,'相册图片')['body'],true,32,JSON_THROW_ON_ERROR);$photos=[];
-    foreach(array_slice(is_array($images)?$images:[],0,300) as $image){if(!is_array($image)||($image['type']??'image')!=='image')continue;$file=trim((string)($image['filename']??''));if($file==='')continue;$url=preg_match('~^https?://~i',$file)?$file:bb_redirect('usr/uploads/'.ltrim($file,'/'),rtrim($album['_siteUrl'],'/').'/');try{$url=bb_url($url,false);}catch(Throwable $e){continue;}$photos[]=['url'=>$url,'caption'=>bb_gallery_text((string)($image['description']??''),255)];}
+    $images=json_decode(bb_fetch_document($album['_endpoint'],2097152,'相册图片')['body'],true,32,JSON_THROW_ON_ERROR);$photos=[];$invalid=0;
+    foreach(array_slice(is_array($images)?$images:[],0,300) as $image){
+        if(!is_array($image)||($image['type']??'image')!=='image')continue;if(!is_string($image['filename']??null)){$invalid++;continue;}$file=trim($image['filename']);if($file==='')continue;
+        try{$url=bb_gallery_image_url($file,$album['_siteUrl']);}catch(Throwable $e){$invalid++;continue;}
+        $photos[]=['url'=>$url,'caption'=>bb_gallery_text((string)($image['description']??''),255)];
+    }
+    if(!$photos&&$invalid)throw new RuntimeException('相册包含图片，但图片路径全部无效；请检查相册记录中的文件名。');
     return $photos;
 }
 function bb_gallery_page(string $url, array $settings = [], bool $catalogOnly = false): array {
