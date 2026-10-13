@@ -17,5 +17,6 @@
   "galleryUrl": "",
   "galleryType": "smart-gallery",
   "galleryAlbums": [],
-  "galleryMaxMB": 512
+  "galleryMaxMB": 512,
+  "galleryImageMode": "hd"
 }

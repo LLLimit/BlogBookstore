@@ -4,11 +4,13 @@
 <label>指定相册编号或名称<textarea name="galleryAlbums" id="gallery-albums" rows="2" placeholder="例如：旅游相册,生活相册"><?=h(implode(',', $settings['galleryAlbums'] ?? []))?></textarea></label>
 <p class="hint">点击「读取可选相册」勾选相册，或直接填写编号/名称，多个相册用逗号隔开。留空展示全部公开相册；密码相册不导入。先保存设置，再开始同步。页面模式最多 12 本画册，JSON 模式最多 60 本，每本最多 300 张，合计最多 800 张。</p>
 <label>本地图片存储上限（MB）<input name="galleryMaxMB" type="number" min="32" max="8192" step="1" value="<?=h($settings['galleryMaxMB'] ?? 512)?>"></label>
+<label>前台照片模式<select name="galleryImageMode"><option value="hd" <?=($settings['galleryImageMode']??'hd')==='hd'?'selected':''?>>高清省流量 · 最长边 3200px / 质量 90</option><option value="original" <?=($settings['galleryImageMode']??'hd')==='original'?'selected':''?>>原图画质 · 原尺寸 / 更小的无损副本</option></select></label>
+<p class="hint">高清模式生成独立阅读副本，保留照片比例和方向，不放大、不裁剪，优先 WebP；没有 WebP 支持时 JPEG 照片使用高清 JPEG。质量 90 是高质量有损压缩，并非数学无损。动画及不能安全转换的照片继续原图；原图不删除，日期、故事与章节不变。需要原始像素时可切回原图模式。先保存设置，再点击下方生成按钮。</p>
 <div class="fields two"><button type="button" class="button secondary" id="gallery-sync-start">立即检查并下载更新</button><button type="button" class="button secondary" id="gallery-sync-status">查看同步状态</button></div>
 <p id="gallery-sync-message" class="hint" role="status">图片从书店本地加载，进入网站时提前加载画册首页和后续照片。</p>
 <p class="hint">自动检查间隔为 24 小时。访客打开网站时会补做过期检查；无人访问时也要每天更新，请在服务器计划任务中每天运行 <code>php /网站根目录/api/gallery-cron.php</code>。大量照片可每 5 分钟运行此命令，它会续传未完成任务，24 小时内不重复检查相册。</p>
-<div class="fields two"><button type="button" class="button secondary" id="gallery-optimize-start">生成 / 补齐缩略图与无损 WebP</button><button type="button" class="button secondary" id="gallery-optimize-status">查看图片优化进度</button></div>
-<p id="gallery-optimize-message" class="hint" role="status">后台使用 400px 缩略图。前台保持原尺寸与画质，只有更小的无损 WebP 才会替代原图。</p>
-<p class="hint">升级后点击生成按钮，为已经同步的照片补齐图片文件，每次只处理一张，关闭页面后可继续。建议启用 Imagick 以使用磁盘缓存；GD 内存不足时会提示并保留原图。照片请求不做实时转码。每日计划任务也会提前生成新增照片的缩略图和无损副本。</p>
+<div class="fields two"><button type="button" class="button secondary" id="gallery-optimize-start">生成 / 补齐缩略图与高清照片</button><button type="button" class="button secondary" id="gallery-optimize-status">查看图片优化进度</button></div>
+<p id="gallery-optimize-message" class="hint" role="status">后台使用 400px 缩略图。高清模式只使用比原图更小的阅读副本，并显示转换前后体积。</p>
+<p class="hint">升级后点击生成按钮，为已经同步的照片补齐图片文件，每次只处理一张，关闭页面后可继续。建议启用 Imagick 以使用磁盘缓存并保留色彩配置；GD 内存不足时会提示并保留原图。照片请求不做实时转码。每日计划任务也会提前生成新增照片的缩略图和阅读副本。CDN 必须保留 file 参数；新副本使用新文件名，无需清空旧照片缓存。</p>
 <h3>旅游册 · 章节与排版</h3><p class="hint">先同步照片，再设置封面、章节、顺序及每张照片的版式。横幅默认铺满双页，竖图可铺满单页或留白。日期与文案显示在照片页角，故事浮动在书外。这里独立保存，不会被每日同步覆盖。</p><button type="button" class="button secondary" id="gallery-editor-load">编辑旅游册</button><p id="gallery-notes-message" class="hint" role="status"></p><div id="gallery-photo-notes"></div>
-</section><script src="./gallery-settings.js?v=1.8.2" defer></script><script src="./gallery-order.js?v=1.8.2" defer></script><script src="./gallery-editor.js?v=1.8.2" defer></script>
+</section><script src="./gallery-settings.js?v=1.8.3" defer></script><script src="./gallery-order.js?v=1.8.3" defer></script><script src="./gallery-editor.js?v=1.8.3" defer></script>

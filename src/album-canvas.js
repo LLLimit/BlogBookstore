@@ -1,13 +1,15 @@
 import {paintAlbumPage,coverPhoto,PAGE_W,PAGE_H} from './album-paint.js';
+import {paperFaces} from './album-paper-mesh.js';
 
 // Continuous curved paper projected into Canvas 2D. It needs no extra WebGL
 // context and keeps the same two-sided turn on phones and fallback browsers.
 export function createAlbumRenderer(host,loader,options={}){
  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{alpha:true});if(!ctx)throw Error('Canvas 2D unavailable');canvas.className='album-canvas';canvas.setAttribute('aria-hidden','true');host.replaceChildren(canvas);
+ const shaded=[document.createElement('canvas'),document.createElement('canvas')];for(const c of shaded){c.width=PAGE_W;c.height=PAGE_H;}
  const mobile=matchMedia('(pointer:coarse)').matches,W=2.9,H=4.15,columns=mobile?28:44,rows=mobile?2:4;
  let width=1,height=1,scale=1,rootX=-W/2,album=null,spread=-1,active=null,raf=0,resolver=null,disposed=false;const textures=new Map();
  function get(index,cover=false){const key=cover?'cover':String(index);if(textures.has(key))return textures.get(key);const paint=options.paint||paintAlbumPage,page=paint(album,index,loader,cover),scope=album;textures.set(key,page);const photo=cover?coverPhoto(album):album.photos[album.pages[index]?.photoIndex],urls=options.images?options.images(album,index,cover):photo?[photo.url]:[];for(const url of urls)if(!loader.peek(url))loader.get(url).then(()=>{if(!disposed&&album===scope&&textures.has(key)){textures.set(key,paint(album,index,loader,cover));render();}}).catch(()=>{});return page;}
- const project=(x,y,z=0)=>({x:width/2+(x+rootX)*scale+(active?.shake||0),y:height/2-y*scale-z*scale*.19});
+ const project=(x,y,z=0)=>({x:width/2+(x+rootX)*scale+(active?.shake||0),y:height/2-y*scale-z*scale*.19,depth:z-y*.19});
  function halt(){cancelAnimationFrame(raf);if(resolver){resolver(false);resolver=null;}active=null;}
  function flat(index,side,cover=false){const p=project(side<0?-W:0,H/2);ctx.drawImage(get(index,cover),p.x,p.y,W*scale,H*scale);}
  function mesh(p,corner){const points=[];const curl=Math.sin(p*Math.PI)*.83;
@@ -22,7 +24,7 @@ export function createAlbumRenderer(host,loader,options={}){
   // the long edges of thin triangles and leaves antialiased sampling cracks.
   const area=(q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x);if(Math.abs(area)<.0001)return;
   const sign=Math.sign(area),normals=points.map((v,i)=>{const next=points[(i+1)%3],dx=next.x-v.x,dy=next.y-v.y,len=Math.max(.0001,Math.hypot(dx,dy));return {x:sign*dy/len,y:-sign*dx/len};});
-  const expanded=points.map((v,i)=>{const a=normals[(i+2)%3],b=normals[i],factor=.8/Math.max(.000001,1+a.x*b.x+a.y*b.y);return {x:v.x+(a.x+b.x)*factor,y:v.y+(a.y+b.y)*factor};}),det=A*F-B*C;if(Math.abs(det)<.0000001)return;
+  const expanded=points.map((v,i)=>{const a=normals[(i+2)%3],b=normals[i],nx=a.x+b.x,ny=a.y+b.y,factor=Math.min(.8/Math.max(.000001,1+a.x*b.x+a.y*b.y),2.4/Math.max(.000001,Math.hypot(nx,ny)));return {x:v.x+nx*factor,y:v.y+ny*factor};}),det=A*F-B*C;if(Math.abs(det)<.0000001)return;
   const source=expanded.map(p=>({x:(F*(p.x-E)-C*(p.y-G))/det,y:(A*(p.y-G)-B*(p.x-E))/det}));
   const sx=Math.max(0,Math.floor(Math.min(...source.map(p=>p.x)))-1),sy=Math.max(0,Math.floor(Math.min(...source.map(p=>p.y)))-1),ex=Math.min(image.width,Math.ceil(Math.max(...source.map(p=>p.x)))+1),ey=Math.min(image.height,Math.ceil(Math.max(...source.map(p=>p.y)))+1);
   if(ex<=sx||ey<=sy)return;
@@ -34,16 +36,15 @@ export function createAlbumRenderer(host,loader,options={}){
  function shadow(points){ctx.save();ctx.filter='blur(12px)';ctx.fillStyle='#26343c25';ctx.beginPath();for(let col=0;col<=columns;col++){const p=points[col];if(!col)ctx.moveTo(p.x+10,p.y+14);else ctx.lineTo(p.x+10,p.y+14);}for(let col=columns;col>=0;col--){const p=points[rows*(columns+1)+col];ctx.lineTo(p.x+10,p.y+14);}ctx.closePath();ctx.fill();ctx.restore();}
  function paper(points){
   const front=get(active.frontIndex,active.frontCover),back=get(active.backIndex);
-  ctx.save();ctx.beginPath();for(let col=0;col<=columns;col++){const p=points[col];if(!col)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);}for(let row=1;row<=rows;row++){const p=points[row*(columns+1)+columns];ctx.lineTo(p.x,p.y);}for(let col=columns-1;col>=0;col--){const p=points[rows*(columns+1)+col];ctx.lineTo(p.x,p.y);}for(let row=rows-1;row>0;row--){const p=points[row*(columns+1)];ctx.lineTo(p.x,p.y);}ctx.closePath();ctx.clip();
-  for(let col=0;col<columns;col++)for(let row=0;row<rows;row++){
-   const i=row*(columns+1)+col,a=points[i],b=points[i+1],c=points[i+columns+1],d=points[i+columns+2],reverse=b.x<a.x,texture=reverse?back:front;
-   const u1=(reverse?1-col/columns:col/columns)*PAGE_W,u2=(reverse?1-(col+1)/columns:(col+1)/columns)*PAGE_W,v1=row/rows*PAGE_H,v2=(row+1)/rows*PAGE_H;
-   triangle(texture,[a,b,c],[{x:u1,y:v1},{x:u2,y:v1},{x:u1,y:v2}]);triangle(texture,[b,d,c],[{x:u2,y:v1},{x:u2,y:v2},{x:u1,y:v2}]);
+  const faces=paperFaces(points,columns,rows,PAGE_W,PAGE_H);
+  // Bake lighting into two opaque page textures. A folded outline can cancel
+  // its own winding; no outer clip or translucent per-cell shade is needed.
+  for(const [side,image]of [front,back].entries()){
+   const c=shaded[side].getContext('2d'),shade=.13*Math.sin(active.p*Math.PI);c.fillStyle='white';c.fillRect(0,0,PAGE_W,PAGE_H);c.drawImage(image,0,0,PAGE_W,PAGE_H);
+   const gradient=c.createLinearGradient(0,0,PAGE_W,0);gradient.addColorStop(side?1:0,`rgba(15,29,40,${shade.toFixed(4)})`);gradient.addColorStop(side?0:1,`rgba(15,29,40,${(shade*.25).toFixed(4)})`);c.fillStyle=gradient;c.fillRect(0,0,PAGE_W,PAGE_H);
   }
-  // Shade once over the complete sheet; per-cell alpha fills reveal grid edges.
-  const lo=Math.min(...points.map(p=>p.x)),hi=Math.max(...points.map(p=>p.x));
-  if(hi-lo>.01&&Math.sin(active.p*Math.PI)>.0001){const gradient=ctx.createLinearGradient(lo,0,hi,0),shade=.13*Math.sin(active.p*Math.PI),reverse=points[0].x>points[columns].x;gradient.addColorStop(reverse?1:0,`rgba(15,29,40,${shade.toFixed(4)})`);gradient.addColorStop(reverse?0:1,`rgba(15,29,40,${(shade*.25).toFixed(4)})`);ctx.fillStyle=gradient;ctx.fillRect(lo-1,0,hi-lo+2,height);}
-  ctx.restore();
+  // Far paper first, near paper last, including folds crossing the spine.
+  for(const face of faces)triangle(shaded[face.reverse?1:0],face.points,face.uv);
  }
  function render(){
   if(disposed||!album)return;ctx.clearRect(0,0,width,height);

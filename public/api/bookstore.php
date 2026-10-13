@@ -12,7 +12,7 @@ function bb_defaults(): array
         'blogUrl' => '', 'feedUrl' => '', 'feedEndpoint' => './api/feed.php',
         'cacheMinutes' => 15, 'faviconUrl' => '', 'uiAccent' => '#83baff', 'defaultHour' => .8,
         'defaultWeather' => 'clear', 'defaultClouds' => 56, 'defaultBrightness' => 1,
-        'musicPlaylists'=>[], 'defaultMusicPlaylist'=>'builtin', 'galleryUrl'=>'', 'galleryType'=>'smart-gallery', 'galleryAlbums'=>[], 'galleryMaxMB'=>512,
+        'musicPlaylists'=>[], 'defaultMusicPlaylist'=>'builtin', 'galleryUrl'=>'', 'galleryType'=>'smart-gallery', 'galleryAlbums'=>[], 'galleryMaxMB'=>512, 'galleryImageMode'=>'hd',
     ], is_array($data) ? array_intersect_key($data, array_flip(array_merge(bb_setting_keys(), ['music']))) : []);
     if (!$defaults['musicPlaylists'] && !empty($defaults['music']) && is_array($defaults['music'])) {
         $defaults['musicPlaylists'] = [['id'=>'custom','name'=>'自定义音乐','type'=>'tracks','tracks'=>bb_music_tracks($defaults['music'])]];
@@ -21,7 +21,7 @@ function bb_defaults(): array
 }
 function bb_setting_keys(): array
 {
-    return ['title','brandMark','author','blogUrl','feedUrl','cacheMinutes','faviconUrl','uiAccent','defaultHour','defaultWeather','defaultClouds','defaultBrightness','musicPlaylists','defaultMusicPlaylist','galleryUrl','galleryType','galleryAlbums','galleryMaxMB'];
+    return ['title','brandMark','author','blogUrl','feedUrl','cacheMinutes','faviconUrl','uiAccent','defaultHour','defaultWeather','defaultClouds','defaultBrightness','musicPlaylists','defaultMusicPlaylist','galleryUrl','galleryType','galleryAlbums','galleryMaxMB','galleryImageMode'];
 }
 function bb_dir(): string
 {
@@ -128,6 +128,8 @@ function bb_validate_settings(array $input): array
     $maximum=$input['galleryMaxMB']??512;
     if(!is_scalar($maximum)||!ctype_digit((string)$maximum)||(int)$maximum<32||(int)$maximum>8192)throw new InvalidArgumentException('画册存储限额需要在 32–8192 MB 之间。');
     $result['galleryMaxMB']=(int)$maximum;
+    $result['galleryImageMode']=$input['galleryImageMode']??bb_settings()['galleryImageMode'];
+    if(!in_array($result['galleryImageMode'],['hd','original'],true))throw new InvalidArgumentException('请选择有效的照片清晰度模式。');
     return $result;
 }
 function bb_password($password): string

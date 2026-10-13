@@ -3,14 +3,15 @@ import {safeUrl} from './articles.js';
 import {buildAlbumPages} from './album-layout.js';
 import {coverPhoto} from './album-paint.js';
 import {createAlbumImageLoader} from './album-images.js';
+import {albumImageWindow} from './album-prefetch.js';
 
 export function initPhotoAlbum(config,openDialog,toast){
  const $=id=>document.getElementById(id),dialog=$('photo-album'),book=$('album-book'),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
  const make=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls;if(text!=null)e.textContent=text;return e;};
  let albums=[],album=null,spread=-1,busy=false,paper=null,loadPromise=null,maintenance=null,drag=null,generation=0;const loader=createAlbumImageLoader();
- function warm(photos){loader.warm(photos.filter(Boolean).slice(0,2).map(p=>p.url));}
- function nearby(){if(album)warm(album.pages.slice(Math.max(0,(spread+1)*2),Math.max(0,(spread+1)*2)+2).map(p=>album.photos[p.photoIndex]));}
- function preload(){const cover=coverPhoto(albums[0]),work=()=>warm([cover]);if('requestIdleCallback'in window)requestIdleCallback(work,{timeout:1800});else setTimeout(work,1200);}
+ function prefetch(value,position=-1){const window=albumImageWindow(value,position);loader.setWindow([...window.current,...window.ahead]);for(const url of window.current)loader.get(url,'high').catch(()=>{});loader.warm(window.ahead);}
+ function nearby(){if(album)prefetch(album,spread);}
+ function preload(){if(albums[0])prefetch(albums[0]);}
  function stories(){
   for(const side of ['left','right'])$('album-story-'+side).replaceChildren();if(!album||spread<0)return;
   const used=new Set();for(const [sideIndex,entry]of album.pages.slice(spread*2,spread*2+2).entries()){const photo=album.photos[entry.photoIndex];if(!photo?.story||used.has(entry.photoIndex))continue;used.add(entry.photoIndex);const side=photo.storySide==='left'||photo.storySide==='right'?photo.storySide:entry.half?'right':sideIndex?'right':'left',card=make('article','album-story');if(photo.pageText)card.append(make('h3','',photo.pageText));card.append(make('p','',photo.story));$('album-story-'+side).append(card);}
@@ -21,7 +22,7 @@ export function initPhotoAlbum(config,openDialog,toast){
  async function fallbackTurn(direction,blocked){const sheet=book.lastElementChild?.cloneNode(true);if(!sheet)return false;sheet.classList.add('album-flat-turn');book.append(sheet);await sheet.animate(blocked?[{transform:'rotateY(0deg)'},{transform:'rotateY(-80deg)',offset:.5},{transform:'rotateY(0deg)'}]:[{transform:`rotateY(${direction>0?0:-180}deg)`},{transform:`rotateY(${direction>0?-180:0}deg)`}],{duration:reduced?280:850,easing:'cubic-bezier(.3,.1,.3,1)'}).finished.catch(()=>{});sheet.remove();return !blocked;}
  async function choose(index){
   if(busy)return;const selected=albums[index];if(!selected)return;const own=++generation;busy=true;spread=-1;album=null;$('album-library').hidden=true;$('album-stage').hidden=$('album-controls').hidden=false;$('album-back').hidden=albums.length<2;$('album-chapters').replaceChildren();$('album-region').textContent=(selected.editor?.chapterOrder||[]).slice(0,2).join(' / ').toUpperCase();$('album-status').textContent='';
-  $('album-status').textContent='正在加载封面…';await Promise.allSettled([coverPhoto(selected)].filter(Boolean).map(p=>loader.get(p.url)));if(own!==generation||!dialog.open){busy=false;return;}$('album-status').textContent='';
+  prefetch(selected);$('album-status').textContent='正在加载封面…';await Promise.allSettled([coverPhoto(selected)].filter(Boolean).map(p=>loader.get(p.url)));if(own!==generation||!dialog.open){busy=false;return;}$('album-status').textContent='';
   const photos=selected.photos.map(p=>{const img=loader.peek(p.url);return {...p,width:img?.naturalWidth||p.width,height:img?.naturalHeight||p.height};});album={...selected,photos,pages:buildAlbumPages(photos,selected.editor)};
   if(!paper)try{const {createAlbumRenderer}=await import('./album-canvas.js');paper=createAlbumRenderer(book,loader);}catch(error){console.error('旅游册纸面初始化失败',error);}
   if(own!==generation||!dialog.open){busy=false;return;}if(paper)paper.choose(album);else fallback();
@@ -30,7 +31,7 @@ export function initPhotoAlbum(config,openDialog,toast){
  function library(){generation++;paper?.stop();drag=null;busy=false;album=null;$('album-region').textContent='';$('album-stage').hidden=$('album-controls').hidden=true;$('album-chapters').replaceChildren();$('album-story-left').replaceChildren();$('album-story-right').replaceChildren();$('album-library').hidden=!albums.length;$('album-back').hidden=true;$('album-status').textContent=albums.length?'':'暂时没有可翻阅的旅游册。';}
  function show(){if(albums.length===1)choose(0);else library();}
  async function ready(direction){
-  if(!album||busy||direction<0&&spread<0)return false;const owner=generation;busy=true;controls();const next=Math.min(album.pages.length/2-1,spread+direction),photos=next<0?[coverPhoto(album)]:album.pages.slice(next*2,next*2+2).map(p=>album.photos[p.photoIndex]).filter(Boolean);$('album-status').textContent=photos.some(p=>!loader.peek(p.url))?'正在加载清晰照片…':'';await Promise.allSettled([...new Set(photos.map(p=>p.url))].map(url=>loader.get(url)));if(owner!==generation)return false;if(!dialog.open){busy=false;return false;}$('album-status').textContent='';const prepared=paper?paper.prepare(direction):true;if(!prepared){busy=false;controls();}return prepared;
+  if(!album||busy||direction<0&&spread<0)return false;const owner=generation;busy=true;controls();const next=Math.min(album.pages.length/2-1,spread+direction),photos=next<0?[coverPhoto(album)]:album.pages.slice(next*2,next*2+2).map(p=>album.photos[p.photoIndex]).filter(Boolean);prefetch(album,next);$('album-status').textContent=photos.some(p=>!loader.peek(p.url))?'正在加载高清照片…':'';await Promise.allSettled([...new Set(photos.map(p=>p.url))].map(url=>loader.get(url)));if(owner!==generation)return false;if(!dialog.open){busy=false;return false;}$('album-status').textContent='';const prepared=paper?paper.prepare(direction):true;if(!prepared){busy=false;controls();}return prepared;
  }
  async function turn(direction){const own=generation;if(!await ready(direction))return;const blocked=direction>0&&spread>=album.pages.length/2-1,committed=paper?await paper.finish(true,reduced):await fallbackTurn(direction,blocked);if(own!==generation||!dialog.open)return;if(committed)spread+=direction;busy=false;if(!paper)fallback();controls();}
  function apply(data){const selected=new Set((config.galleryAlbums||[]).map(String));albums=(Array.isArray(data.albums)?data.albums:[]).filter(a=>a&&!a.private&&!a.password&&Array.isArray(a.photos)&&(!selected.size||selected.has(String(a.id))||selected.has(a.title))).map(a=>({...a,photos:a.photos.map(p=>({...p,url:safeUrl(p.url,location.href),thumbnailUrl:safeUrl(p.thumbnailUrl,location.href)})).filter(p=>p.url)})).filter(a=>a.photos.length);

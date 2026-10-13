@@ -97,7 +97,7 @@ function bb_gallery_sync(array $settings,bool $force=false,int $batch=2): array 
 function bb_gallery(array $settings): array {
     if(empty($settings['galleryUrl']))return ['albums'=>[]];
     bb_gallery_import_seed($settings);
-    $key=bb_gallery_key($settings);$data=bb_gallery_with_notes($settings,bb_gallery_variant_urls(bb_read('gallery-local-'.$key)??['albums'=>[]]));$status=bb_gallery_status($settings);
+    $key=bb_gallery_key($settings);$data=bb_gallery_with_notes($settings,bb_gallery_variant_urls(bb_read('gallery-local-'.$key)??['albums'=>[]],$settings));$status=bb_gallery_status($settings);
     return array_merge($data,['syncPending'=>$status['pending']>0||!$status['checkedAt']||time()-$status['checkedAt']>=86400,'syncStatus'=>['checkedAt'=>$status['checkedAt'],'pending'=>$status['pending'],'failures'=>$status['failures'],'error'=>$status['error']]]);
 }
 require_once __DIR__.'/gallery-notes-lib.php';
