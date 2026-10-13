@@ -16,7 +16,7 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * @package BlogBookstore
  * @author LLLimit
  * @link https://github.com/LLLimit
- * @version 1.8.4
+ * @version 1.8.5
  * @since 1.3.0
  */
 class Plugin implements PluginInterface

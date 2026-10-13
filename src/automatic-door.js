@@ -11,10 +11,8 @@ export function createAutomaticDoor(scene,{box,material,rainPane,glass}){
     const pane=rainPane(leafWidth-.05,height-.08,.032,0,height/2,0,doorGlass,leaf);pane.receiveShadow=false;
     for(const edge of [-1,1])box(.033,height,.075,edge*(leafWidth/2-.0165),height/2,0,frame,leaf);
     for(const y of [.026,height-.026])box(leafWidth,.052,.075,0,y,0,frame,leaf);
-    // Frosted safety stripes and soft highlights make the clear glass readable.
+    // Frosted safety stripes make the clear glass readable.
     for(const y of [1.02,1.09])box(leafWidth-.09,.021,.003,0,y,.02,stripe,leaf);
-    const shine=new THREE.Mesh(new THREE.PlaneGeometry(.016,1.98),new THREE.MeshBasicMaterial({color:'#edfaff',transparent:true,opacity:.24,depthWrite:false,side:THREE.DoubleSide}));
-    shine.position.set(side*.37,1.52,.018);shine.rotation.z=-.08;leaf.add(shine);
     leaf.traverse(part=>{part.userData.slidingDoor=true;});
     return leaf;
   });
