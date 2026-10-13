@@ -10,6 +10,7 @@ import {createGlassRain} from './glass-rain.js';
 import {addReadingRoom} from './reading-room.js';
 import {animeMaterial,LIGHTING_SCALE} from './anime-material.js';
 import {addPottedPlant} from './plants.js';
+import {createAutomaticDoor} from './automatic-door.js';
 
 // A complete street corner, built locally without external models or textures.
 export function createDistrict(scene) {
@@ -18,7 +19,7 @@ export function createDistrict(scene) {
   const material=(color,extra={})=>{const key=color+JSON.stringify(Object.fromEntries(Object.entries(extra).map(([k,v])=>[k,v?.uuid||v])));if(!materials.has(key))materials.set(key,animeMaterial(color,extra));return materials.get(key);};
   const ivory=material('#dedbd1'), concrete=material('#9ea6a5'), trim=material('#315554'), metal=material('#39434b',{metalness:.6,roughness:.38}), gold=material('#d7ae53',{metalness:.5,roughness:.4}), oak=material('#715035'), darkOak=material('#44362c');
   function box(w,h,d,x,y,z,m,parent=scene){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);mesh.castShadow=!m.transparent&&Math.min(w,h,d)>.035;mesh.receiveShadow=true;parent.add(mesh);return mesh;}
-  function rainPane(w,h,d,x,y,z,m){const pane=box(w,h,d,x,y,z,m);glassRain.add(pane,w<d?d:w,h,w<d?'x':'z',Math.min(w,d));return pane;}
+  function rainPane(w,h,d,x,y,z,m,parent=scene){const pane=box(w,h,d,x,y,z,m,parent);glassRain.add(pane,w<d?d:w,h,w<d?'x':'z',Math.min(w,d));return pane;}
   function cylinder(r,h,x,y,z,m,parent=scene){const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,16),m);mesh.position.set(x,y,z);mesh.castShadow=r>.035;mesh.receiveShadow=true;parent.add(mesh);return mesh;}
   function bar(a,b,r,m,parent=scene){const from=new THREE.Vector3(...a),to=new THREE.Vector3(...b);const mesh=cylinder(r,from.distanceTo(to),0,0,0,m,parent);mesh.position.copy(from.add(to).multiplyScalar(.5));mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(...b).sub(new THREE.Vector3(...a)).normalize());return mesh;}
   function texture(width,height,draw){const c=document.createElement('canvas');c.width=width;c.height=height;draw(c.getContext('2d'),width,height);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t;}
@@ -56,7 +57,7 @@ export function createDistrict(scene) {
   box(12.4,4.15,.22,-.35,2.23,-4.35,ivory);box(.22,4.15,8.6,-6.65,2.23,-.15,ivory);
   obstacle(-6.65,-.15,.25,8.6);obstacle(-.35,-4.35,12.4,.3);
   const glass=new THREE.MeshPhysicalMaterial({color:'#d7ece6',transparent:true,opacity:.045,metalness:.02,roughness:.12,side:THREE.DoubleSide,depthWrite:false});
-  // Door gap in the middle is walkable; front windows remain solid to players.
+  // Fixed windows flank a sliding entrance; its leaf collision follows the door.
   for(const x of [-3.8,3.1]){
     box(4.5,.48,.12,x,.42,4.13,trim);rainPane(4.45,2.23,.035,x,1.77,4.15,glass);obstacle(x,4.15,4.45,.2);
     for(const xx of [x-2.22,x,x+2.22])box(.045,2.8,.065,xx,1.7,4.18,metal);
@@ -64,6 +65,7 @@ export function createDistrict(scene) {
   }
   for(const x of [-1.49,.88])box(.075,3,.12,x,1.7,4.14,metal);
   box(2.45,.12,.14,-.3,3.14,4.16,metal);
+  const entranceDoor=createAutomaticDoor(scene,{box,material,rainPane,glass});
   for(let z=-3.6;z<3.8;z+=2.4){box(.12,.55,2.4,5.97,.43,z,trim);rainPane(.035,2.4,2.33,5.98,1.9,z,glass);for(const zz of [z-1.17,z+1.17])box(.09,3.25,.055,6,1.82,zz,metal);}
   obstacle(6,.1,.25,8.6);
   box(13,.75,.7,-.35,3.59,4.25,ivory);box(13,.075,.72,-.35,3.91,4.25,trim);box(13,.09,.73,-.35,3.25,4.25,material('#d6ae4c'));
@@ -173,7 +175,7 @@ export function createDistrict(scene) {
   const lounge=addLounge(scene,helpers,market);
   // Merge static meshes by material; preserve glass, lamps and signage controls.
   scene.updateMatrixWorld(true);const batches=new Map(), originals=[];
-  scene.traverse(o=>{if(o.isMesh&&o!==shopSign&&!o.userData.bookPlaceholder&&!o.material.transparent){const key=o.material.uuid+o.castShadow+o.receiveShadow;if(!batches.has(key))batches.set(key,{m:o.material,cast:o.castShadow,receive:o.receiveShadow,g:[]});const clone=o.geometry.clone().applyMatrix4(o.matrixWorld),normal=clone.index?clone.toNonIndexed():clone;if(normal!==clone)clone.dispose();batches.get(key).g.push(normal);originals.push(o);}});
+  scene.traverse(o=>{if(o.isMesh&&o!==shopSign&&!o.userData.bookPlaceholder&&!o.userData.slidingDoor&&!o.material.transparent){const key=o.material.uuid+o.castShadow+o.receiveShadow;if(!batches.has(key))batches.set(key,{m:o.material,cast:o.castShadow,receive:o.receiveShadow,g:[]});const clone=o.geometry.clone().applyMatrix4(o.matrixWorld),normal=clone.index?clone.toNonIndexed():clone;if(normal!==clone)clone.dispose();batches.get(key).g.push(normal);originals.push(o);}});
   originals.forEach(o=>{o.removeFromParent();o.geometry.dispose();});
   for(const b of batches.values()){const geometry=mergeGeometries(b.g);b.g.forEach(g=>g.dispose());if(geometry){const mesh=new THREE.Mesh(geometry,b.m);mesh.castShadow=b.cast;mesh.receiveShadow=b.receive;scene.add(mesh);}}
   // Keep this clickable album outside the static mesh batch.
@@ -210,5 +212,5 @@ export function createDistrict(scene) {
     shopSign.material.map=tex;shopSign.material.needsUpdate=true;
   }
   function floorAt(x,z,foot){const s=lounge.stair;if(x>s.left&&x<s.right&&z>s.back-.1&&z<s.front+.03)return s.bottom+THREE.MathUtils.clamp((s.front-z)/(s.front-s.back),0,1)*(s.top-s.bottom);return foot>3.5?lounge.floorY:.17;}
-  return {shelves,colliders,box,material,texture,setTitle,setWeather,setLighting,floorAt,...lounge,...readingRoom,animate:t=>{mirror.material.uniforms.uTime.value=t;glassRain.animate(t);return weatherEffects.animate(t);},mirror};
+  return {shelves,colliders,box,material,texture,setTitle,setWeather,setLighting,floorAt,entranceDoor,...lounge,...readingRoom,animate:t=>{mirror.material.uniforms.uTime.value=t;glassRain.animate(t);return weatherEffects.animate(t);},mirror};
 }

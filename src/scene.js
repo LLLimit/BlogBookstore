@@ -53,6 +53,7 @@ export function createBookstore(container,onRead,onAim,onPause,onStart){
   const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.dampingFactor=.08;orbit.enablePan=false;orbit.minDistance=13;orbit.maxDistance=58;orbit.minPolarAngle=.3;orbit.maxPolarAngle=1.53;orbit.target.set(-.6,2.1,-.6);
   let mode='orbit',view='front',enabled=false,playing=false,quality=1,weather='clear',hour=.8,currentHour=.8,cloudAmount=.56,brightness=1,dirty=true,touchMove={x:0,y:0},hovered=null,walking=0;
   const keys=new Set(),ray=new THREE.Raycaster(),pointer=new THREE.Vector2(),targets=[],books=[];let last=performance.now(),elapsed=0,lastRender=0,baseSun=0,baseHemi=0;
+  const doorPointer=new THREE.Vector2();let doorPointerInside=false;
   const savedPosition=new THREE.Vector3(0,1.82,5.5);let savedYaw=0,savedPitch=0;
   const coarse=matchMedia('(pointer:coarse)').matches;let dragged=false,drag=null,hadPointerLock=false,pendingLock=false,lockRequest=0,lockUsesPromise=false;
   function frameCamera(){
@@ -86,7 +87,7 @@ export function createBookstore(container,onRead,onAim,onPause,onStart){
   function activateWalk(){pendingLock=false;enabled=true;mouseCursor();dirty=true;onStart?.();}
   function lockFailed(error,request=lockRequest){if(!pendingLock||request!==lockRequest)return;requestPause({kind:'pointer-lock',name:error?.name||'PointerLockError'});}
   function lock(){
-    orbit.enabled=false;mode='walk';playing=true;enabled=false;drag=null;pendingLock=!coarse;lockUsesPromise=false;const request=++lockRequest;
+    orbit.enabled=false;mode='walk';playing=true;enabled=false;drag=null;doorPointerInside=false;pendingLock=!coarse;lockUsesPromise=false;const request=++lockRequest;
     mouseCursor();shadowFocus();camera.fov=64;camera.clearViewOffset();camera.updateProjectionMatrix();camera.position.copy(savedPosition);walkLook.set(savedYaw,savedPitch);dirty=true;
     if(coarse){activateWalk();return;}
     if(typeof renderer.domElement.requestPointerLock!=='function'){lockFailed({name:'NotSupportedError'},request);return;}
@@ -100,14 +101,15 @@ export function createBookstore(container,onRead,onAim,onPause,onStart){
     }
     attempt(true);
   }
-  function overview(){pause();mode='orbit';playing=false;orbit.enabled=true;shadowFocus();frameCamera();}
+  function overview(){pause();mode='orbit';playing=false;orbit.enabled=true;doorPointerInside=false;shadowFocus();frameCamera();}
   function reset(){overview();savedPosition.set(0,1.82,5.5);savedYaw=0;savedPitch=0;}
-  function blocked(x,z){const level=camera.position.y-1.65>3.5?1:0;return x<-13.6||x>13.2||z<-10.5||z>11.5||district.colliders.some(c=>c.level===level&&Math.abs(x-c.x)<c.w&&Math.abs(z-c.z)<c.d);}
+  function blocked(x,z){const level=camera.position.y-1.65>3.5?1:0;return x<-13.6||x>13.2||z<-10.5||z>11.5||(!level&&district.entranceDoor.blocked(x,z))||district.colliders.some(c=>c.level===level&&Math.abs(x-c.x)<c.w&&Math.abs(z-c.z)<c.d);}
   function look(dx,dy,locked=false){if(!enabled)return;if(locked?walkLook.pointer(dx,dy):walkLook.turn(dx,dy))dirty=true;}
   function frame(time){requestAnimationFrame(frame);const dt=Math.min((time-last)/1000,.1);last=time;if(document.hidden||document.querySelector('dialog[open]'))return;elapsed+=dt;
     const timeDifference=THREE.MathUtils.euclideanModulo(hour-currentHour+12,24)-12;
     if(Math.abs(timeDifference)>.002){currentHour=THREE.MathUtils.euclideanModulo(currentHour+timeDifference*(1-Math.exp(-dt*7)),24);lighting();}
     if(mode==='orbit')orbit.update(dt);
+    if(district.entranceDoor.update(dt,{player:mode==='walk'?camera.position:null,pointer:mode==='orbit'&&doorPointerInside?doorPointer:null,camera}))dirty=true;
     if(enabled){const dx=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0)+touchMove.x,dz=(keys.has('KeyS')||keys.has('ArrowDown')?1:0)-(keys.has('KeyW')||keys.has('ArrowUp')?1:0)+touchMove.y,len=Math.max(1,Math.hypot(dx,dz)),speed=dt*2.7,a=walkLook.yaw,vx=(Math.cos(a)*dx+Math.sin(a)*dz)/len*speed,vz=(-Math.sin(a)*dx+Math.cos(a)*dz)/len*speed;
       if(!blocked(camera.position.x+vx,camera.position.z))camera.position.x+=vx;if(!blocked(camera.position.x,camera.position.z+vz))camera.position.z+=vz;walking+=Math.hypot(vx,vz)*8;const floor=district.floorAt(camera.position.x,camera.position.z,camera.position.y-1.65);camera.position.y=floor+1.65+(Math.abs(dx)+Math.abs(dz)>0?.009*Math.sin(walking):0);aim();}
     atmosphere.animate(elapsed);const flash=district.animate(elapsed);hemisphere.intensity=baseHemi+flash*2.5;sun.intensity=baseSun+flash*4;atmosphere.setFlash(flash);
@@ -117,13 +119,15 @@ export function createBookstore(container,onRead,onAim,onPause,onStart){
   document.addEventListener('pointerlockchange',()=>{const locked=document.pointerLockElement===renderer.domElement;if(locked){if(pendingLock||enabled){if(!hadPointerLock)walkLook.beginPointerInput();hadPointerLock=true;activateWalk();}else document.exitPointerLock?.();}else if(hadPointerLock){hadPointerLock=false;requestPause();}mouseCursor();});
   document.addEventListener('pointerlockerror',()=>{if(!lockUsesPromise)lockFailed();});
   document.addEventListener('keydown',e=>{if(!enabled||e.target?.matches?.('input,textarea'))return;if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyE'].includes(e.code)){e.preventDefault();keys.add(e.code);if(e.code==='KeyE'&&!e.repeat)read();}});
-  document.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{keys.clear();touchMove={x:0,y:0};requestPause();});
+  document.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{doorPointerInside=false;keys.clear();touchMove={x:0,y:0};requestPause();});
+  renderer.domElement.addEventListener('pointermove',e=>{doorPointerInside=mode==='orbit'&&e.pointerType==='mouse';if(doorPointerInside){const r=renderer.domElement.getBoundingClientRect();doorPointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);}});
+  renderer.domElement.addEventListener('pointerleave',()=>{doorPointerInside=false;});
   renderer.domElement.addEventListener('pointerdown',e=>{dragged=false;if(!enabled)return;e.preventDefault();e.stopPropagation();if(e.button===0&&e.pointerType!=='mouse'&&!document.pointerLockElement){renderer.domElement.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,y:e.clientY};}});
   renderer.domElement.addEventListener('pointermove',e=>{if(!enabled||e.pointerType==='mouse'||document.pointerLockElement===renderer.domElement)return;if(drag?.id===e.pointerId){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>2)dragged=true;look(dx,dy);drag.x=e.clientX;drag.y=e.clientY;}});
   for(const type of ['pointerup','pointercancel','lostpointercapture'])renderer.domElement.addEventListener(type,e=>{drag=null;if(renderer.domElement.hasPointerCapture(e.pointerId))renderer.domElement.releasePointerCapture(e.pointerId);});
   for(const type of ['dragstart','contextmenu'])renderer.domElement.addEventListener(type,e=>{if(mode==='walk'){e.preventDefault();e.stopPropagation();}});
   renderer.domElement.addEventListener('click',e=>{if(!playing||!enabled||dragged||e.button!==0)return;if(document.pointerLockElement===renderer.domElement||(e.pointerType==='mouse'||!coarse)){aim();read();return;}pointer.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);const book=aim(pointer);if(book)onRead(book.userData.article||book.userData.interaction);});
-  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);if(mode==='orbit')frameCamera();dirty=true;});
+  addEventListener('resize',()=>{doorPointerInside=false;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);if(mode==='orbit')frameCamera();dirty=true;});
   document.addEventListener('visibilitychange',()=>{last=performance.now();keys.clear();touchMove={x:0,y:0};if(document.hidden)requestPause();dirty=true;});
   frame(performance.now());
   return {setArticles,setAuthor:value=>{coverAuthor=String(value||'博客作者');},lock,pause,reset,overview,read,goToFloor:level=>{camera.position.set(level ? .15 : 0,level ? 5.89 : 1.82,level ? 3.55 : 5.5);walkLook.set(0,level ? -.12 : 0);savedPosition.copy(camera.position);savedYaw=walkLook.yaw;savedPitch=walkLook.pitch;dirty=true;},setTitle:t=>{district.setTitle(t);dirty=true;},setMove:(x,y)=>touchMove={x,y},setTime:value=>hour=Number(value),setView:value=>{if(['wide','corner','front'].includes(value)){view=value;overview();}},setClouds:value=>{cloudAmount=THREE.MathUtils.clamp(Number(value),0,1);lighting();},setWeather:value=>{weather=value;district.setWeather(weather,quality);lighting();},setBrightness:value=>{brightness=Number(value);lighting();},get enabled(){return enabled;},get mode(){return mode;},setQuality:()=>{quality=1-quality;const ratio=quality?Math.min(devicePixelRatio,1.75):1;renderer.setPixelRatio(ratio);composer.setPixelRatio(ratio);renderer.shadowMap.enabled=!!quality;scene.traverse(o=>{if(o.material)o.material.needsUpdate=true;});district.setWeather(weather,quality);dirty=true;return quality;},renderer,camera,scene,orbit,atmosphere,...(import.meta.env.DEV?{debug:{composer,ao,bloom,district}}:{})};
