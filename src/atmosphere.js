@@ -27,7 +27,12 @@ export function createAtmosphere(scene){
     fragmentShader:'uniform float uOpacity;uniform float uTime;varying float phase;void main(){float a=1.-smoothstep(.05,.5,length(gl_PointCoord-.5));gl_FragColor=vec4(.83,.9,1.,a*uOpacity*(.7+.3*sin(uTime*.65+phase)));}'
   }));stars.userData.sky=true;scene.add(stars);
 
-  const cloudMaterials=Array.from({length:6},()=>{const m=new THREE.MeshBasicMaterial({color:'#52688e',vertexColors:true});m.onBeforeCompile=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying float vCloudShade;').replace('#include <begin_vertex>','#include <begin_vertex>\nvCloudShade=clamp(normal.y*.2+.8,.6,1.);');shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying float vCloudShade;').replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb*=vCloudShade;');};m.customProgramCacheKey=()=> 'soft-cloud-shading';return m;});
+  const cloudMaterials=Array.from({length:6},()=>{const m=new THREE.MeshBasicMaterial({color:'#52688e'});m.userData.animeSurface='cloud';m.onBeforeCompile=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying float vCloudShade;').replace('#include <begin_vertex>','#include <begin_vertex>\nvCloudShade=normal.y;');shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying float vCloudShade;').replace('#include <color_fragment>',`#include <color_fragment>
+      float aa=clamp(fwidth(vCloudShade)*.7,.008,.035);
+      float middle=smoothstep(.05-aa,.05+aa,vCloudShade);
+      float top=smoothstep(.55-aa,.55+aa,vCloudShade);
+      diffuseColor.rgb*=mix(vec3(.76,.83,1.),vec3(1.),middle)*(.66+.20*middle+.14*top);
+    `);};m.customProgramCacheKey=()=> 'anime-cloud-three-tone-v3';return m;});
   // A shallow base and overlapping broad crowns define the cloud silhouette.
   // Signed-distance union preserves those crowns without pinched satellite blobs.
   const cloudGeometry=[];

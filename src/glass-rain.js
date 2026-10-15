@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {animeMaterial} from './anime-material.js';
 
 // Water lives on the exterior panes, not on the camera or indoor refrigerator.
 // Coordinates are metres so large and small windows have the same droplet scale.
@@ -78,14 +79,12 @@ float glassWater(vec2 p) {
 export function createGlassRain() {
   const time={value:0},storm={value:0},panes=[];
   function add(pane,width,height,axis,depth) {
-    const material=new THREE.MeshPhysicalMaterial({
-      color:'#ffffff',roughness:.035,metalness:0,transmission:1,
-      thickness:.16,ior:1.333,envMapIntensity:1.8,specularIntensity:1.2,
-      transparent:true,opacity:.92,side:THREE.DoubleSide,depthWrite:false,
-    });
+    const material=animeMaterial('#d3e7ed',{surface:'glazed',transparent:true,opacity:.6,side:THREE.DoubleSide,depthWrite:false});
     const uniforms={uRainTime:time,uStorm:storm,
       uPaneSeed:{value:panes.length*7.13+2.7},uPaneSize:{value:new THREE.Vector2(width,height)}};
+    const compile=material.onBeforeCompile;
     material.onBeforeCompile=shader=>{
+      compile(shader);
       Object.assign(shader.uniforms,uniforms);
       shader.vertexShader=shader.vertexShader
         .replace('#include <common>','#include <common>\nvarying vec2 vRainUv;')
@@ -107,10 +106,10 @@ export function createGlassRain() {
           vec3 waterR1=cross(waterDy,normal),waterR2=cross(normal,waterDx);
           float waterDet=dot(waterDx,waterR1)*faceDirection;
           vec3 waterGradient=sign(waterDet)*(waterSlope.x*waterR1+waterSlope.y*waterR2);
-          normal=normalize(abs(waterDet)*normal-waterGradient*1.45);
+          normal=normalize(max(abs(waterDet),.000001)*normal-waterGradient*1.45);
         `);
     };
-    material.customProgramCacheKey=()=> 'exterior-glass-water-v1';
+    material.customProgramCacheKey=()=> 'anime-exterior-glass-water-v3';
     const overlay=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
     if(axis==='x'){overlay.rotation.y=Math.PI/2;overlay.position.x=depth/2+.0015;}
     else overlay.position.z=depth/2+.0015;
@@ -123,11 +122,9 @@ export function createGlassRain() {
     storm.value=weather==='storm'?1:0;
     for(const pane of panes) {
       pane.visible=wet;
-      // The lightweight mode keeps highlights without another refraction pass.
-      const material=pane.material,nextTransmission=quality?1:0;
-      if(material.transmission!==nextTransmission){material.transmission=nextTransmission;material.needsUpdate=true;}
-      material.color.set(quality?'#ffffff':'#788d91');
-      material.opacity=quality?.92:.24;
+      const material=pane.material;
+      material.color.set(quality?'#d3e7ed':'#b7d3dd');
+      material.opacity=quality?.6:.35;
     }
   }
   return {add,set,animate:t=>{time.value=t;}};

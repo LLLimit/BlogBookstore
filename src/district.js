@@ -8,7 +8,7 @@ import {createMerchandise} from './merchandise.js';
 import {addLounge} from './lounge.js';
 import {createGlassRain} from './glass-rain.js';
 import {addReadingRoom} from './reading-room.js';
-import {animeMaterial,LIGHTING_SCALE} from './anime-material.js';
+import {animeMaterial,animeGlass,LIGHTING_SCALE} from './anime-material.js';
 import {addPottedPlant} from './plants.js';
 import {createAutomaticDoor} from './automatic-door.js';
 
@@ -56,7 +56,7 @@ export function createDistrict(scene) {
   // Shop shell and illuminated striped fascia.
   box(12.4,4.15,.22,-.35,2.23,-4.35,ivory);box(.22,4.15,8.6,-6.65,2.23,-.15,ivory);
   obstacle(-6.65,-.15,.25,8.6);obstacle(-.35,-4.35,12.4,.3);
-  const glass=new THREE.MeshPhysicalMaterial({color:'#d7ece6',transparent:true,opacity:.045,metalness:.02,roughness:.12,side:THREE.DoubleSide,depthWrite:false});
+  const glass=animeGlass('#b8d8d5',{opacity:.045});
   // Fixed windows flank a sliding entrance; its leaf collision follows the door.
   for(const x of [-3.8,3.1]){
     box(4.5,.48,.12,x,.42,4.13,trim);rainPane(4.45,2.23,.035,x,1.77,4.15,glass);obstacle(x,4.15,4.45,.2);
@@ -87,7 +87,7 @@ export function createDistrict(scene) {
   roof.position.y=3.7;
   // Detailed shop interior remains a real playable space behind the glass.
   const grain=texture(256,1024,(ctx,w,h)=>{ctx.fillStyle='#b18d68';ctx.fillRect(0,0,w,h);let seed=12;for(let i=0;i<80;i++){seed=seed*16807%2147483647;ctx.strokeStyle='#6f4c3010';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(seed%w,0);ctx.bezierCurveTo(seed%w+5,300,seed%w-6,650,seed%w,h);ctx.stroke();}});
-  const floor=material('#d0b794',{map:grain,roughness:.72});
+  const floor=material('#ffffff',{map:grain,roughness:.9});
   for(let x=-6.55;x<5.85;x+=.52)box(.51,.03,8.15,x+.25,.163,-.1,floor);
   const readingRoom=addReadingRoom(scene,{box,material,obstacle,texture});
   for(const [x,z] of [[-3.1,1.5],[2.6,1.5],[-3.1,-2.4],[2.6,-2.4]]){box(1.98,.06,.31,x,4.015,z,metal);box(1.9,.025,.24,x,3.98,z,shopLight);point('#ffe1b0',16,6,x,3.66,z);}

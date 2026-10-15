@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {animeGlass} from './anime-material.js';
 import {addPottedPlant} from './plants.js';
 
 export function addLounge(scene,h,market){
@@ -29,7 +30,7 @@ export function addLounge(scene,h,market){
   for(let n=0;n<=4;n++)box(.09,3.25,.055,6,floorY+1.65,-4.35+n*2.1,metal);
   box(.17,.53,8.55,6,7.435,-.15,cream);
   box(12.5,3.52,.16,-.35,5.92,-4.35,cream);obstacle(-.35,-4.35,12.5,.18,1);
-  const glass=new THREE.MeshPhysicalMaterial({color:'#c7e0dc',transparent:true,opacity:.04,roughness:.13,depthWrite:false});
+  const glass=animeGlass('#b8d8d5',{opacity:.04});
   box(12.8,.57,.18,-.35,4.53,4.17,trim);box(12.8,.48,.18,-.35,7.46,4.17,cream);
   for(let x=-5.93;x<6;x+=2.32){rainPane(2.25,2.4,.03,x,5.96,4.17,glass);box(.055,2.44,.08,x+1.12,5.96,4.18,metal);box(2.3,.055,.09,x,4.75,4.19,metal);}
   obstacle(-.35,4.17,12.8,.18,1);

@@ -4,51 +4,33 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {SSAOPass} from 'three/addons/postprocessing/SSAOPass.js';
 import {SMAAPass} from 'three/addons/postprocessing/SMAAPass.js';
 import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
-import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {createDistrict} from './district.js';
 import {createAtmosphere} from './atmosphere.js';
 import {createWalkLook} from './walk-look.js';
 import {animeMaterial,setAnimeDaylight} from './anime-material.js';
+import {createAnimeInkPass} from './anime-ink.js';
 
 const palette=['#395957','#a16347','#b79c6e','#535d7b','#985355','#67785b','#ad8a50','#527586'];
 export function createBookstore(container,onRead,onAim,onPause,onStart){
-  const scene=new THREE.Scene();scene.background=new THREE.Color('#172034');scene.fog=new THREE.FogExp2('#172034',.012);
+  const scene=new THREE.Scene();scene.background=new THREE.Color('#172034');scene.fog=new THREE.Fog('#172034',28,220);
   const camera=new THREE.PerspectiveCamera(43,innerWidth/innerHeight,.08,300);camera.rotation.order='YXZ';camera.up.set(0,1,0);
   const walkLook=createWalkLook(camera);
   const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));
-  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.NeutralToneMapping;renderer.toneMappingExposure=1.05;
   container.appendChild(renderer.domElement);renderer.domElement.tabIndex=-1;
-  const pmrem=new THREE.PMREMGenerator(renderer);const room=new RoomEnvironment();const environment=pmrem.fromScene(room,.04);scene.environment=environment.texture;room.dispose();pmrem.dispose();
   const hemisphere=new THREE.HemisphereLight('#bdd7f0','#515961',.6);scene.add(hemisphere);
   const sun=new THREE.DirectionalLight('#ffe5bc',1);sun.position.set(-8,18,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-22,right:22,top:22,bottom:-22,near:.5,far:65});sun.shadow.bias=-.00015;sun.shadow.normalBias=.045;scene.add(sun);
   const district=createDistrict(scene);
   const atmosphere=createAtmosphere(scene);
   const target=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{type:THREE.HalfFloatType});target.samples=Math.min(4,renderer.capabilities.maxSamples);
   const composer=new EffectComposer(renderer,target);composer.addPass(new RenderPass(scene,camera));
-  const ao=new SSAOPass(scene,camera,innerWidth,innerHeight,16);ao.kernelRadius=.55;ao.minDistance=.001;ao.maxDistance=.018;
-  // SSAO's screen-space blur can duplicate thin furniture silhouettes indoors.
-  // Keep its normal buffer for ink edges, but use real light shadows in the room.
-  ao.copyMaterial.uniforms.contactStrength={value:.45};
-  ao.copyMaterial.fragmentShader=ao.copyMaterial.fragmentShader.replace('uniform float opacity;','uniform float opacity; uniform float contactStrength;').replace('gl_FragColor = opacity * texel;','gl_FragColor = vec4(mix(vec3(1.0),texel.rgb,contactStrength),texel.a);');
-  const aoRender=ao.render.bind(ao);
-  // Contact depth uses the building surfaces; weather overlays have custom masks and heights.
-  ao.render=(...args)=>{const inside=camera.position.x>-6.8&&camera.position.x<6.1&&camera.position.z>-4.5&&camera.position.z<4.35&&camera.position.y<7.7;ao.copyMaterial.uniforms.contactStrength.value=inside?0:.45;ao.kernelRadius=inside ? .12 : .32;ao.maxDistance=inside ? .002 : .009;ao.ssaoMaterial.uniforms.cameraProjectionMatrix.value.copy(camera.projectionMatrix);ao.ssaoMaterial.uniforms.cameraInverseProjectionMatrix.value.copy(camera.projectionMatrixInverse);const hidden=[];scene.traverse(o=>{if(o.visible&&(o.userData.sky||o.userData.snowCover||(o.isMesh&&(o.isReflector||o.material.transparent)))){hidden.push(o);o.visible=false;}});try{aoRender(...args);}finally{hidden.forEach(o=>o.visible=true);}};
-  // Contact shadows use the full drawing resolution so thin book spines keep clean edges.
-  composer.addPass(ao);
-  // Fine ink accents use geometry normals, so printed text and wood grain stay clean.
-  const ink=new ShaderPass({uniforms:{tDiffuse:{value:null},tNormal:{value:ao.normalRenderTarget.texture},texel:{value:new THREE.Vector2(1/innerWidth,1/innerHeight)}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:`uniform sampler2D tDiffuse;uniform sampler2D tNormal;uniform vec2 texel;varying vec2 vUv;
-    void main(){vec4 c=texture2D(tDiffuse,vUv);vec3 n=texture2D(tNormal,vUv).rgb;float e=0.;
-    e=max(e,length(n-texture2D(tNormal,vUv+vec2(texel.x,0.)).rgb));e=max(e,length(n-texture2D(tNormal,vUv-vec2(texel.x,0.)).rgb));
-    e=max(e,length(n-texture2D(tNormal,vUv+vec2(0.,texel.y)).rgb));e=max(e,length(n-texture2D(tNormal,vUv-vec2(0.,texel.y)).rgb));
-    float line=smoothstep(.35,.68,e)*.24;gl_FragColor=vec4(mix(c.rgb,c.rgb*vec3(.31,.37,.49),line),c.a);}`});
-  const renderInk=ink.render.bind(ink);ink.render=(...args)=>{ink.uniforms.texel.value.set(.8/ao.normalRenderTarget.width,.8/ao.normalRenderTarget.height);renderInk(...args);};composer.addPass(ink);
+  const ink=createAnimeInkPass(scene,camera);composer.addPass(ink);
   // Close-up lamps can exceed a half-float buffer. Bound highlights before they enter bloom.
   const highlights=new ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'uniform sampler2D tDiffuse;varying vec2 vUv;float safe(float v){if(!(v>=0.||v<=0.))return 0.;return clamp(v,0.,24.);}void main(){vec4 c=texture2D(tDiffuse,vUv);gl_FragColor=vec4(safe(c.r),safe(c.g),safe(c.b),1.);}'});composer.addPass(highlights);
-  const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.24,.52,1.65);composer.addPass(bloom);
-  // SMAA also smooths edges introduced by AO and bloom after geometry MSAA has resolved.
+  const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.12,.28,1.85);composer.addPass(bloom);
+  // Keep ink edges smooth after the geometry MSAA resolve, in both quality modes.
   const smaa=new SMAAPass();composer.addPass(smaa);composer.addPass(new OutputPass());composer.setPixelRatio(Math.min(devicePixelRatio,1.75));
   const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.dampingFactor=.08;orbit.enablePan=false;orbit.minDistance=13;orbit.maxDistance=58;orbit.minPolarAngle=.3;orbit.maxPolarAngle=1.53;orbit.target.set(-.6,2.1,-.6);
   let mode='orbit',view='front',enabled=false,playing=false,quality=1,weather='clear',hour=.8,currentHour=.8,cloudAmount=.56,brightness=1,dirty=true,touchMove={x:0,y:0},hovered=null,walking=0;
@@ -63,11 +45,18 @@ export function createBookstore(container,onRead,onAim,onPause,onStart){
   }
   frameCamera();orbit.addEventListener('change',()=>dirty=true);
   function lighting(){
-    const {day,overcast,horizon,sunPosition,night,warmth}=atmosphere.conditions(currentHour,weather,cloudAmount);
+    const {day,overcast,top,horizon,sunPosition,night,warmth}=atmosphere.conditions(currentHour,weather,cloudAmount);
     setAnimeDaylight(day,brightness);
-    scene.fog.color.copy(horizon);scene.fog.density=weather==='storm'?.022:weather==='rain'?.011:.0035;
+    scene.fog.color.copy(horizon).lerp(top,weather==='storm'?.6:weather==='rain'?.35:0);
     hemisphere.intensity=.22+day*.75;hemisphere.color.set(day>.2?'#c1ddeb':'#7e9bdb').lerp(new THREE.Color('#f7b781'),warmth*.5);sun.intensity=day*2.2*(1-overcast*.8)+night*.11;sun.color.set(day>.03?'#fff0d3':'#a0b5f5').lerp(new THREE.Color('#ff9148'),warmth);sun.position.copy(day>.03?sunPosition:new THREE.Vector3(-12,20,-5));
-    scene.environmentIntensity=.11+day*.39;renderer.toneMappingExposure=THREE.MathUtils.lerp(1.1,.95,day);district.setLighting(day,brightness,night);baseSun=sun.intensity;baseHemi=hemisphere.intensity;dirty=true;
+    renderer.toneMappingExposure=THREE.MathUtils.lerp(1.08,1.,day);district.setLighting(day,brightness,night);baseSun=sun.intensity;baseHemi=hemisphere.intensity;dirty=true;
+  }
+  function updateFogRange(){
+    // The overview camera sits outside the miniature street. That empty distance
+    // must not turn the entire set into fog when the player zooms out.
+    const overviewDistance=mode==='orbit'?camera.position.distanceTo(orbit.target):0;
+    scene.fog.near=Math.max(20,overviewDistance+4);
+    scene.fog.far=scene.fog.near+(weather==='storm'?100:weather==='rain'?150:280);
   }
   lighting();district.setWeather(weather,quality);
   let coverAuthor='博客作者';
@@ -113,7 +102,7 @@ export function createBookstore(container,onRead,onAim,onPause,onStart){
     if(enabled){const dx=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0)+touchMove.x,dz=(keys.has('KeyS')||keys.has('ArrowDown')?1:0)-(keys.has('KeyW')||keys.has('ArrowUp')?1:0)+touchMove.y,len=Math.max(1,Math.hypot(dx,dz)),speed=dt*2.7,a=walkLook.yaw,vx=(Math.cos(a)*dx+Math.sin(a)*dz)/len*speed,vz=(-Math.sin(a)*dx+Math.cos(a)*dz)/len*speed;
       if(!blocked(camera.position.x+vx,camera.position.z))camera.position.x+=vx;if(!blocked(camera.position.x,camera.position.z+vz))camera.position.z+=vz;walking+=Math.hypot(vx,vz)*8;const floor=district.floorAt(camera.position.x,camera.position.z,camera.position.y-1.65);camera.position.y=floor+1.65+(Math.abs(dx)+Math.abs(dz)>0?.009*Math.sin(walking):0);aim();}
     atmosphere.animate(elapsed);const flash=district.animate(elapsed);hemisphere.intensity=baseHemi+flash*2.5;sun.intensity=baseSun+flash*4;atmosphere.setFlash(flash);
-    if(enabled||dirty||time-lastRender>=1000/(quality?30:20)){if(quality)composer.render(dt);else renderer.render(scene,camera);dirty=false;lastRender=time;}
+    if(enabled||dirty||time-lastRender>=1000/(quality?30:20)){updateFogRange();composer.render(dt);dirty=false;lastRender=time;}
   }
   document.addEventListener('mousemove',e=>{if(document.pointerLockElement===renderer.domElement){if(e.buttons&&Math.abs(e.movementX)+Math.abs(e.movementY)>2)dragged=true;look(e.movementX,e.movementY,true);}});
   document.addEventListener('pointerlockchange',()=>{const locked=document.pointerLockElement===renderer.domElement;if(locked){if(pendingLock||enabled){if(!hadPointerLock)walkLook.beginPointerInput();hadPointerLock=true;activateWalk();}else document.exitPointerLock?.();}else if(hadPointerLock){hadPointerLock=false;requestPause();}mouseCursor();});
@@ -130,5 +119,5 @@ export function createBookstore(container,onRead,onAim,onPause,onStart){
   addEventListener('resize',()=>{doorPointerInside=false;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);if(mode==='orbit')frameCamera();dirty=true;});
   document.addEventListener('visibilitychange',()=>{last=performance.now();keys.clear();touchMove={x:0,y:0};if(document.hidden)requestPause();dirty=true;});
   frame(performance.now());
-  return {setArticles,setAuthor:value=>{coverAuthor=String(value||'博客作者');},lock,pause,reset,overview,read,goToFloor:level=>{camera.position.set(level ? .15 : 0,level ? 5.89 : 1.82,level ? 3.55 : 5.5);walkLook.set(0,level ? -.12 : 0);savedPosition.copy(camera.position);savedYaw=walkLook.yaw;savedPitch=walkLook.pitch;dirty=true;},setTitle:t=>{district.setTitle(t);dirty=true;},setMove:(x,y)=>touchMove={x,y},setTime:value=>hour=Number(value),setView:value=>{if(['wide','corner','front'].includes(value)){view=value;overview();}},setClouds:value=>{cloudAmount=THREE.MathUtils.clamp(Number(value),0,1);lighting();},setWeather:value=>{weather=value;district.setWeather(weather,quality);lighting();},setBrightness:value=>{brightness=Number(value);lighting();},get enabled(){return enabled;},get mode(){return mode;},setQuality:()=>{quality=1-quality;const ratio=quality?Math.min(devicePixelRatio,1.75):1;renderer.setPixelRatio(ratio);composer.setPixelRatio(ratio);renderer.shadowMap.enabled=!!quality;scene.traverse(o=>{if(o.material)o.material.needsUpdate=true;});district.setWeather(weather,quality);dirty=true;return quality;},renderer,camera,scene,orbit,atmosphere,...(import.meta.env.DEV?{debug:{composer,ao,bloom,district}}:{})};
+  return {setArticles,setAuthor:value=>{coverAuthor=String(value||'博客作者');},lock,pause,reset,overview,read,goToFloor:level=>{camera.position.set(level ? .15 : 0,level ? 5.89 : 1.82,level ? 3.55 : 5.5);walkLook.set(0,level ? -.12 : 0);savedPosition.copy(camera.position);savedYaw=walkLook.yaw;savedPitch=walkLook.pitch;dirty=true;},setTitle:t=>{district.setTitle(t);dirty=true;},setMove:(x,y)=>touchMove={x,y},setTime:value=>hour=Number(value),setView:value=>{if(['wide','corner','front'].includes(value)){view=value;overview();}},setClouds:value=>{cloudAmount=THREE.MathUtils.clamp(Number(value),0,1);lighting();},setWeather:value=>{weather=value;district.setWeather(weather,quality);lighting();},setBrightness:value=>{brightness=Number(value);lighting();},get enabled(){return enabled;},get mode(){return mode;},setQuality:()=>{quality=1-quality;const ratio=quality?Math.min(devicePixelRatio,1.75):1;renderer.setPixelRatio(ratio);composer.setPixelRatio(ratio);renderer.shadowMap.enabled=!!quality;bloom.enabled=!!quality;scene.traverse(o=>{if(o.material)o.material.needsUpdate=true;});district.setWeather(weather,quality);dirty=true;return quality;},renderer,camera,scene,orbit,atmosphere,...(import.meta.env.DEV?{debug:{composer,ink,bloom,district}}:{})};
 }

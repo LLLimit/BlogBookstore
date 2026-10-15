@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {animeMaterial} from './anime-material.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 const clamp=THREE.MathUtils.clamp;
@@ -55,8 +56,10 @@ export function createSnowCover(scene) {
   for(let level=0;level<3;level++)patch(4.45,.56,-11.4,3.728+level*2.2,.72,.025);
 
   const accumulation={value:.55};
-  const material=new THREE.MeshStandardMaterial({color:'#f2f7fa',roughness:.97,metalness:0});
+  const material=animeMaterial('#edf4fc');
+  const compile=material.onBeforeCompile;
   material.onBeforeCompile=shader=>{
+    compile(shader);
     shader.uniforms.uSnowDepth=accumulation;
     shader.vertexShader=shader.vertexShader
       .replace('#include <common>',`#include <common>
@@ -108,13 +111,13 @@ export function createSnowCover(scene) {
       `)
       .replace('#include <alphatest_fragment>',`
         float coverage=snowCoverage(vSnowWorld.xz);
-        // A fixed world-space grain breaks up the edge without animated shimmer.
-        if(coverage<snowHash(floor(vSnowWorld.xz*140.)))discard;
-        diffuseColor.rgb*=.91+.07*snowNoise(vSnowWorld.xz*1.8)+.02*snowNoise(vSnowWorld.xz*31.);
+        // Broad painted patches replace photographic grain and speckled edges.
+        if(coverage<.48)discard;
+        diffuseColor.rgb*=mix(.94,1.,step(.5,snowNoise(vSnowWorld.xz*.75)));
         #include <alphatest_fragment>
       `);
   };
-  material.customProgramCacheKey=()=> 'settled-snow-v2';
+  material.customProgramCacheKey=()=> 'anime-settled-snow-v3';
   const geometry=mergeGeometries(geometries);
   geometries.forEach(g=>g.dispose());
   const snow=new THREE.Mesh(geometry,material);snow.receiveShadow=true;snow.userData.snowCover=true;group.add(snow);

@@ -8,7 +8,7 @@ export function createWeather(scene, texture) {
   let weather = 'clear', seed = 127;
   const random = () => { seed = seed * 16807 % 2147483647; return seed / 2147483647; };
   const timeUniform = {value: 0};
-  const count = 3200, lightRainCount = 900;
+  const count = 3200, lightRainCount = 1100;
   const origins = [], motion = [], style = [];
   for (let n = 0; n < count; n++) {
     origins.push(random() * 29 - 14.9, random() * 19, random() * 24 - 11.4);
@@ -19,11 +19,13 @@ export function createWeather(scene, texture) {
   const uniforms = {
     uTime: timeUniform,
     uSpeed: {value: 8},
-    uLength: {value: .21},
+    uLength: {value: .27},
     uWidth: {value: .009},
     uWind: {value: new THREE.Vector2(1.15, -.35)},
     uGust: {value: .38},
-    uAlpha: {value: .25},
+    uAlpha: {value: .30},
+    uViewportHeight: {value: 1080},
+    uPixelWidth: {value: .9},
     uSplashSize: {value: .8}
   };
   const originAttribute = new THREE.InstancedBufferAttribute(new Float32Array(origins), 3);
@@ -90,6 +92,8 @@ export function createWeather(scene, texture) {
       ${motionGLSL}
       uniform float uLength;
       uniform float uWidth;
+      uniform float uViewportHeight;
+      uniform float uPixelWidth;
       varying vec2 vUv;
       varying vec3 vWorld;
       varying float vOpacity;
@@ -103,15 +107,19 @@ export function createWeather(scene, texture) {
         vec4 view = mix(headView, tailView, uv.y);
         vec2 axis = tailView.xy - headView.xy;
         vec2 across = vec2(-axis.y, axis.x) / max(length(axis), .0001);
-        float width = max(uWidth, min(.032, max(0., -view.z) * .00085));
-        width *= aMotion.z * mix(1., .3, uv.y);
+        // Maintain a thin screen-space stroke when viewing the whole street.
+        // A world-space width cap made far drops subpixel and effectively invisible.
+        float pixelSize = 2. * max(.1, -view.z) / (projectionMatrix[1][1] * max(1., uViewportHeight));
+        float width = max(uWidth * aMotion.z, pixelSize * uPixelWidth * (.82 + .30 * aStyle.z));
+        width *= mix(1., .45, uv.y);
         view.xy += across * position.x * width;
         gl_Position = projectionMatrix * view;
         vUv = uv;
         vWorld = (modelMatrix * vec4(mix(head, tail, uv.y), 1.)).xyz;
-        float distanceFade = 1. - smoothstep(16., 38., -view.z);
+        float distanceFade = 1. - smoothstep(120., 180., -view.z);
         float nearFade = smoothstep(.15, .8, -view.z);
-        vOpacity = aStyle.z * (1. - smoothstep(16.5, 19., height)) * distanceFade * nearFade;
+        float farContrast = mix(1., 1.3, smoothstep(18., 55., -view.z));
+        vOpacity = aStyle.z * (1. - smoothstep(16.5, 19., height)) * distanceFade * nearFade * farContrast;
       }
     `,
     fragmentShader: `
@@ -133,6 +141,8 @@ export function createWeather(scene, texture) {
   }));
   rain.frustumCulled = false;
   rain.visible = false;
+  const viewportSize = new THREE.Vector2();
+  rain.onBeforeRender = renderer => { uniforms.uViewportHeight.value = renderer.getSize(viewportSize).y; };
   scene.add(rain);
 
   // Each ring appears at a drop's actual impact point. Its size and lifetime
@@ -162,7 +172,7 @@ export function createWeather(scene, texture) {
         vUv = uv;
         vWorld = (modelMatrix * vec4(p, 1.)).xyz;
         vProgress = t;
-        vOpacity = (1. - t) * (1. - t) * aStyle.z * (1. - smoothstep(16., 36., -view.z));
+        vOpacity = (1. - t) * (1. - t) * aStyle.z * (1. - smoothstep(120., 180., -view.z));
       }
     `,
     fragmentShader: `
@@ -226,11 +236,12 @@ export function createWeather(scene, texture) {
     ripple.visible = rain.visible;
     rainGeometry.instanceCount = rippleGeometry.instanceCount = storm ? count : lightRainCount;
     uniforms.uSpeed.value = storm ? 14 : 8;
-    uniforms.uLength.value = storm ? .39 : .21;
+    uniforms.uLength.value = storm ? .39 : .27;
     uniforms.uWidth.value = storm ? .014 : .009;
     uniforms.uWind.value.set(storm ? 5.2 : 1.15, storm ? -1.8 : -.35);
     uniforms.uGust.value = storm ? 1.5 : .38;
-    uniforms.uAlpha.value = storm ? .34 : .25;
+    uniforms.uAlpha.value = storm ? .34 : .30;
+    uniforms.uPixelWidth.value = storm ? 1.05 : .9;
     uniforms.uSplashSize.value = storm ? 1 : .8;
   }
   function animate(time) {

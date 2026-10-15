@@ -5,7 +5,7 @@ export function createAutomaticDoor(scene,{box,material,rainPane,glass}){
   const x=-.305,z=4.075,bottom=.185,width=2.28,height=2.82,leafWidth=1.14,travel=1.16;
   const root=new THREE.Group();root.name='BookstoreAutomaticDoor';root.position.set(x,bottom,z);scene.add(root);
   const frame=material('#37494d'),rail=material('#647876'),stripe=material('#d9e7e1');
-  const doorGlass=glass.clone();doorGlass.opacity=.14;doorGlass.roughness=.16;doorGlass.color.set('#c2e2df');
+  const doorGlass=glass.clone();doorGlass.opacity=.12;doorGlass.color.set('#b8d8d5');
   const leaves=[-1,1].map(side=>{
     const leaf=new THREE.Group();leaf.name=side<0?'SlidingDoorLeft':'SlidingDoorRight';root.add(leaf);
     const pane=rainPane(leafWidth-.05,height-.08,.032,0,height/2,0,doorGlass,leaf);pane.receiveShadow=false;

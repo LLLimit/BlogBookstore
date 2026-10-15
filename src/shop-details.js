@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {animeGlass} from './anime-material.js';
 import {animeMaterial} from './anime-material.js';
 
 export function addShopDetails(scene,h){
@@ -44,7 +45,7 @@ export function addShopDetails(scene,h){
   }
   // Sliding doors parked open, threshold, handles and non-slip entry mat.
   for(const x of [-1.8,1.19]){
-    box(.42,2.6,.026,x,1.61,4.16,new THREE.MeshPhysicalMaterial({color:'#c5e4df',transparent:true,opacity:.055,roughness:.16,depthWrite:false}));
+    box(.42,2.6,.026,x,1.61,4.16,animeGlass('#b8d8d5',{opacity:.055}));
     box(.025,2.63,.06,x-.21,1.61,4.19,metal);box(.025,2.63,.06,x+.21,1.61,4.19,metal);
     box(.45,.025,.06,x,2.93,4.19,metal);box(.45,.025,.06,x,.3,4.19,metal);bar([x,1.15,4.235],[x,1.52,4.235],.018,white);
     box(.42,.10,.03,x,1.63,4.2,teal);
