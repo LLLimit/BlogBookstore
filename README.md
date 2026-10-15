@@ -53,17 +53,19 @@ BlogBookstore 通过公开 RSS / Atom 将博客文章放进可漫游的两层书
 
 [进入 LLLimit'书店](https://book.darkduck.fun/)
 
+以下展示图来自 1.8.6 三渲二版本的实际运行画面。
+
 ### 雨夜街角
 
-[![雨夜街角：两层书店、斜落雨滴、路灯与湿润路面倒影](https://raw.githubusercontent.com/LLLimit/BlogBookstore/main/docs/images/rainy-street-corner.jpg)](https://book.darkduck.fun/)
+[![三渲二雨夜街角：分层明暗、两层书店、斜落雨滴与湿润路面](https://raw.githubusercontent.com/LLLimit/BlogBookstore/main/docs/images/rainy-street-corner.jpg?v=1.8.6)](https://book.darkduck.fun/)
 
-暴雨中的书店，配有玻璃流动水珠、屋檐滴水与地面水花。
+三渲二材质与几何描边下的雨夜，远景仍能看见随风倾斜的雨线；玻璃流动水珠、屋檐滴水与地面水花继续保留。
 
 ### 雪天街角
 
-[![雪天街角：飘落雪花、人行道与路面积雪，以及屋顶和雨棚积雪](https://raw.githubusercontent.com/LLLimit/BlogBookstore/main/docs/images/snowy-street-corner.jpg)](https://book.darkduck.fun/)
+[![三渲二雪天街角：卡通明暗、飘落雪花、屋顶与街面积雪](https://raw.githubusercontent.com/LLLimit/BlogBookstore/main/docs/images/snowy-street-corner.jpg?v=1.8.6)](https://book.darkduck.fun/)
 
-飘雪时，路面、人行道、路沿、屋顶和雨棚逐渐积雪，店内保持温暖明亮。
+白天雪景中的建筑、家具和积雪统一使用卡通色阶；路面、人行道、路沿、屋顶和雨棚逐渐积雪，店内保持温暖明亮。
 
 ## 技术栈
 
